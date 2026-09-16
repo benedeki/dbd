@@ -29,6 +29,9 @@ jobs:
   check-pr-release-notes:
     name: Check PR Release Notes
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
 
     steps:
       - uses: actions/setup-python@v6
