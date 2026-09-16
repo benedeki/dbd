@@ -1,0 +1,50 @@
+# Bug report template for GitHub issues.
+# Version: 1.0
+name: Bug Report
+description: Create a report to help us improve
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please supply complete reproduction details to speed up resolution.
+
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what went wrong.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior OR commands run
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Enter value '...'
+        4. See error
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Attachments / Evidence
+      description: Logs, screenshots, traces.
+      placeholder: Paste relevant excerpts.
+    validations:
+      required: false
+
+  - type: textarea
+    id: related
+    attributes:
+      label: Related / References
+      description: Link other issues/PRs.
+      placeholder: "#456, #789"
+    validations:
+      required: false
