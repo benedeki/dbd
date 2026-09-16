@@ -1,0 +1,46 @@
+# Documentation template for GitHub issues.
+# Version: 1.0
+name: Feature Request
+description: Suggest an idea for this project.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an improvement. Please provide clear, actionable detail.
+
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of what you want to happen.
+      placeholder: Describe the feature you'd like to see.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: High-level approach. Mention alternatives if considered.
+      placeholder: Describe the direction without full implementation detail.
+    validations:
+      required: false
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependencies / Related
+      description: Link related issues, epics, or external docs.
+      placeholder: "#123, #456, ADR link"
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any other information or screenshots about the feature request here
+      placeholder: Add any other relevant context or screenshots
+    validations:
+      required: false
