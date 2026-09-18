@@ -221,5 +221,5 @@ def test_get_as_config_wraps_scalar_value(value):
     ["get_as_str", "get_as_int", "get_as_bool", "get_as_float", "get_as_list", "get_as_config"]
 )
 def test_getters_raise_for_missing_values(getter):
-    with pytest.raises(ValueError, match="Configuration key 'missing' not found"):
+    with pytest.raises(KeyError, match="Configuration key 'missing' not found"):
         getattr(Config({}), getter)("missing")
