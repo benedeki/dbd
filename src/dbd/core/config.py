@@ -102,5 +102,47 @@ class Config:
     def expand(self, secret_reader: AbstractSecretReader):
         self._data = self._expand_config(self._data, Path.cwd(), secret_reader)
 
+    def getAsStr(self, key: str, default: str | None = None) -> str | None:
+        value = self._data.get(key, default)
+        if value is None:
+            raise ValueError(f"Configuration key '{key}' not found..")
+        if isinstance(value, list):
+            result = "\n".join(str(x) for x in value)
+            return result
+        return str(value)
+
+    def getAsInt(self, key: str, default: int | None = None) -> int | None:
+        value = self._data.get(key, default)
+        if value is None:
+            raise ValueError(f"Configuration key '{key}' not found..")
+        return int(value)
+
+    def getAsBool(self, key: str, default: bool | None = None) -> bool | None:
+        value = self._data.get(key, default)
+        if value is None:
+            raise ValueError(f"Configuration key '{key}' not found..")
+        return bool(value)
+
+    def getAsFloat(self, key: str, default: float | None = None) -> float | None:
+        value = self._data.get(key, default)
+        if value is None:
+            raise ValueError(f"Configuration key '{key}' not found..")
+        return float(value)
+
+    def getAsList(self, key: str, default: list[Any] | None = None) -> list[Any] | None:
+        value = self._data.get(key, default)
+        if value is None:
+            raise ValueError(f"Configuration key '{key}' not found..")
+        if not isinstance(value, list):
+            value = [value]
+        return value
+
+    def getAsConfig(self, key: str, default: dict[str, Any] | None = None) -> Config | None:
+        value = self._data.get(key, default)
+        if value is None:
+            raise ValueError(f"Configuration key '{key}' not found..")
+        if not isinstance(value, dict):
+            value = {key: value}
+        return Config(value)
 
 REFERENCE_PATTERN = re.compile(r"^__(?P<type>[A-Z]+)\((?P<value>.+)\)$")

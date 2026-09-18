@@ -137,3 +137,62 @@ def test_expand_preserves_unresolved_references():
         "unknown": "__ENVIRONMENT(value)",
         "partial": "prefix __SECRET(value)",
     }
+
+
+def test_get_as_str_returns_value_and_joins_lists():
+    config = Config({"name": "example", "items": ["one", 2, True]})
+
+    assert config.getAsStr("name") == "example"
+    assert config.getAsStr("items") == "one\n2\nTrue"
+
+
+def test_get_as_str_uses_default():
+    assert Config({}).getAsStr("name", "default") == "default"
+
+
+@pytest.mark.parametrize(
+        ("getter", "value", "expected"),
+        [
+            ("getAsInt", "42", 42),
+            ("getAsBool", 1, True),
+            ("getAsFloat", "3.14", 3.14),
+        ],
+)
+def test_scalar_getters_convert_values(getter, value, expected):
+    config = Config({"value": value})
+
+    assert getattr(config, getter)("value") == expected
+
+
+def test_scalar_getters_use_defaults():
+    config = Config({})
+
+    assert config.getAsInt("value", 42) == 42
+    assert config.getAsBool("value", True) is True
+    assert config.getAsFloat("value", 3.14) == 3.14
+
+
+def test_get_as_list_returns_list_or_wraps_scalar():
+    config = Config({"items": ["one", "two"], "item": "one"})
+
+    assert config.getAsList("items") == ["one", "two"]
+    assert config.getAsList("item") == ["one"]
+    assert config.getAsList("missing", ["default"]) == ["default"]
+
+
+def test_get_as_config_returns_config_or_wraps_scalar():
+    config = Config({"nested": {"name": "example"}, "value": "example"})
+
+    nested = config.getAsConfig("nested")
+    wrapped = config.getAsConfig("value")
+
+    assert nested is not None
+    assert nested._data == {"name": "example"}
+    assert wrapped is not None
+    assert wrapped._data == {"value": "example"}
+
+
+@pytest.mark.parametrize("getter", ["getAsStr", "getAsInt", "getAsBool", "getAsFloat", "getAsList", "getAsConfig"])
+def test_getters_raise_for_missing_values(getter):
+    with pytest.raises(ValueError, match="Configuration key 'missing' not found"):
+        getattr(Config({}), getter)("missing")
