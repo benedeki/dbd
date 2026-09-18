@@ -139,24 +139,43 @@ def test_expand_preserves_unresolved_references():
     }
 
 
+def test_has_key_reports_whether_key_exists():
+    config = Config({"name": "example"})
+
+    assert config.has_key("name") is True
+    assert config.has_key("missing") is False
+
+
+def test_get_returns_configured_value():
+    value = {"nested": ["value"]}
+    config = Config({"value": value})
+
+    assert config.get("value") is value
+
+
+def test_get_raises_for_missing_key():
+    with pytest.raises(KeyError):
+        Config({}).get("missing")
+
+
 def test_get_as_str_returns_value_and_joins_lists():
     config = Config({"name": "example", "items": ["one", 2, True]})
 
-    assert config.getAsStr("name") == "example"
-    assert config.getAsStr("items") == "one\n2\nTrue"
+    assert config.get_as_str("name") == "example"
+    assert config.get_as_str("items") == "one\n2\nTrue"
 
 
 def test_get_as_str_uses_default():
-    assert Config({}).getAsStr("name", "default") == "default"
+    assert Config({}).get_as_str("name", "default") == "default"
 
 
 @pytest.mark.parametrize(
-        ("getter", "value", "expected"),
-        [
-            ("getAsInt", "42", 42),
-            ("getAsBool", 1, True),
-            ("getAsFloat", "3.14", 3.14),
-        ],
+    ("getter", "value", "expected"),
+    [
+        ("get_as_int", "42", 42),
+        ("get_as_bool", 1, True),
+        ("get_as_float", "3.14", 3.14),
+    ],
 )
 def test_scalar_getters_convert_values(getter, value, expected):
     config = Config({"value": value})
@@ -167,24 +186,24 @@ def test_scalar_getters_convert_values(getter, value, expected):
 def test_scalar_getters_use_defaults():
     config = Config({})
 
-    assert config.getAsInt("value", 42) == 42
-    assert config.getAsBool("value", True) is True
-    assert config.getAsFloat("value", 3.14) == 3.14
+    assert config.get_as_int("value", 42) == 42
+    assert config.get_as_bool("value", True) is True
+    assert config.get_as_float("value", 3.14) == 3.14
 
 
 def test_get_as_list_returns_list_or_wraps_scalar():
     config = Config({"items": ["one", "two"], "item": "one"})
 
-    assert config.getAsList("items") == ["one", "two"]
-    assert config.getAsList("item") == ["one"]
-    assert config.getAsList("missing", ["default"]) == ["default"]
+    assert config.get_as_list("items") == ["one", "two"]
+    assert config.get_as_list("item") == ["one"]
+    assert config.get_as_list("missing", ["default"]) == ["default"]
 
 
 def test_get_as_config_returns_config_or_wraps_scalar():
     config = Config({"nested": {"name": "example"}, "value": "example"})
 
-    nested = config.getAsConfig("nested")
-    wrapped = config.getAsConfig("value")
+    nested = config.get_as_config("nested")
+    wrapped = config.get_as_config("value")
 
     assert nested is not None
     assert nested._data == {"name": "example"}
@@ -192,7 +211,10 @@ def test_get_as_config_returns_config_or_wraps_scalar():
     assert wrapped._data == {"value": "example"}
 
 
-@pytest.mark.parametrize("getter", ["getAsStr", "getAsInt", "getAsBool", "getAsFloat", "getAsList", "getAsConfig"])
+@pytest.mark.parametrize(
+    "getter",
+    ["get_as_str", "get_as_int", "get_as_bool", "get_as_float", "get_as_list", "get_as_config"]
+)
 def test_getters_raise_for_missing_values(getter):
     with pytest.raises(ValueError, match="Configuration key 'missing' not found"):
         getattr(Config({}), getter)("missing")

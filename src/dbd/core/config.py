@@ -102,7 +102,13 @@ class Config:
     def expand(self, secret_reader: AbstractSecretReader):
         self._data = self._expand_config(self._data, Path.cwd(), secret_reader)
 
-    def getAsStr(self, key: str, default: str | None = None) -> str | None:
+    def has_key(self, key: str) -> bool:
+        return key in self._data
+
+    def get(self, key: str) -> Any:
+        return self._data[key]
+
+    def get_as_str(self, key: str, default: str | None = None) -> str:
         value = self._data.get(key, default)
         if value is None:
             raise ValueError(f"Configuration key '{key}' not found..")
@@ -111,25 +117,25 @@ class Config:
             return result
         return str(value)
 
-    def getAsInt(self, key: str, default: int | None = None) -> int | None:
+    def get_as_int(self, key: str, default: int | None = None) -> int:
         value = self._data.get(key, default)
         if value is None:
             raise ValueError(f"Configuration key '{key}' not found..")
         return int(value)
 
-    def getAsBool(self, key: str, default: bool | None = None) -> bool | None:
+    def get_as_bool(self, key: str, default: bool | None = None) -> bool:
         value = self._data.get(key, default)
         if value is None:
             raise ValueError(f"Configuration key '{key}' not found..")
         return bool(value)
 
-    def getAsFloat(self, key: str, default: float | None = None) -> float | None:
+    def get_as_float(self, key: str, default: float | None = None) -> float:
         value = self._data.get(key, default)
         if value is None:
             raise ValueError(f"Configuration key '{key}' not found..")
         return float(value)
 
-    def getAsList(self, key: str, default: list[Any] | None = None) -> list[Any] | None:
+    def get_as_list(self, key: str, default: list[Any] | None = None) -> list[Any]:
         value = self._data.get(key, default)
         if value is None:
             raise ValueError(f"Configuration key '{key}' not found..")
@@ -137,7 +143,7 @@ class Config:
             value = [value]
         return value
 
-    def getAsConfig(self, key: str, default: dict[str, Any] | None = None) -> Config | None:
+    def get_as_config(self, key: str, default: dict[str, Any] | None = None) -> Config:
         value = self._data.get(key, default)
         if value is None:
             raise ValueError(f"Configuration key '{key}' not found..")
