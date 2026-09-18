@@ -1,4 +1,4 @@
-# Makefile for the pump_well Python project
+# Makefile for the DBD Python project
 
 .PHONY: help install test lint check check-license format clean
 
