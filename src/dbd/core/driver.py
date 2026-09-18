@@ -1,4 +1,3 @@
-#
 # Copyright 2026 David Benedeki, All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
 import hashlib
 import re
 from dataclasses import dataclass, field
@@ -36,7 +35,7 @@ class Driver(Configurable):
         object.__setattr__(self, "mappings", self._extract_mappings())
 
     def install(self) -> dict[str, str]:
-        """Process the aws and apply them to the destination system."""
+        """Read and process the sources and apply them to the destination system."""
         self.record_keeper.start_session(self.config)
         warnings = {}
         for source_name in self.source_provider.get_sources_list():

@@ -1,6 +1,6 @@
-# Makefile for the pump_well Python project
+# Makefile for the DBD Python project
 
-.PHONY: help install test lint format clean
+.PHONY: help install test lint check check-license format clean
 
 help:
 	@echo "Available commands:"
@@ -8,7 +8,9 @@ help:
 	@echo "  make install-dev       - Install dev dependencies"
 	@echo "  make test              - Run tests"
 	@echo "  make lint              - Lint (ruff) and type-check (mypy)"
+	@echo "  make check             - Run lint and license checks"
 	@echo "  make format            - Auto-fix and format code (ruff)"
+	@echo "  make check-license     - Check license headers (hawkeye)"
 	@echo "  make clean             - Clean up build artifacts"
 	@echo "  make build             - Build the project (using uv build)"
 
@@ -28,11 +30,15 @@ lint:
 	uv run ruff check src tests
 	uv run mypy src/dbd
 
+check: lint check-license
+
 format:
 	uv run ruff check --fix src tests
+
+check-license:
+	hawkeye check
 
 clean:
 	rm -rf build/ dist/ *.egg-info/
 	find . -type d -name __pycache__ -exec rm -rf {} +
 	find . -type f -name "*.pyc" -delete
-	rm -f glue_job.zip

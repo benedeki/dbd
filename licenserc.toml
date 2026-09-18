@@ -1,0 +1,9 @@
+[header]
+builtin = "Apache-2.0"
+
+[props]
+copyright_owner = "David Benedeki, All rights reserved."
+inception_year = 2026
+
+[files]
+includes = ["**/*.py"]
