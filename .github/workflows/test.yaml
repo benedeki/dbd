@@ -18,8 +18,7 @@ name: Test
 
 on:
   pull_request:
-    branches:
-      - main, master
+    branches: [ master, main ]
 
 permissions:
   contents: read
@@ -29,20 +28,7 @@ jobs:
   python-tests:
     name: Python tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: pump_well
     steps:
-
-      - name: Check if needed
-        working-directory: .
-        run: echo "No Python code changes — skipping tests."
-
-      - name: Download aws
-        uses: actions/download-artifact@v8
-        with:
-          name: repo-aws
-
       - uses: actions/setup-python@v7
         with:
           python-version: '3.10'

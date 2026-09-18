@@ -99,3 +99,42 @@ def test_from_file_rejects_non_object_json(tmp_path):
 
     with pytest.raises(ValueError, match="must contain a JSON object"):
         Config.from_file(str(config_path))
+
+
+def test_expand_expands_file_and_secret_references_from_current_directory(tmp_path, monkeypatch):
+    included_path = tmp_path / "included.json"
+    included_path.write_text('{"value": "from included file"}', encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    config = Config(
+        {
+            "included": "__FILE(included.json)",
+            "password": "__SECRET(database-password)",
+            "items": ["__SECRET(database-password)"],
+        }
+    )
+
+    config.expand(StubSecretReader({"database-password": "secret-value"}))
+
+    assert config._data == {
+        "included": {"value": "from included file"},
+        "password": "secret-value",
+        "items": ["secret-value"],
+    }
+
+
+def test_expand_preserves_unresolved_references():
+    config = Config(
+        {
+            "missing_secret": "__SECRET(missing)",
+            "unknown": "__ENVIRONMENT(value)",
+            "partial": "prefix __SECRET(value)",
+        }
+    )
+
+    config.expand(StubSecretReader({}))
+
+    assert config._data == {
+        "missing_secret": "__SECRET(missing)",
+        "unknown": "__ENVIRONMENT(value)",
+        "partial": "prefix __SECRET(value)",
+    }

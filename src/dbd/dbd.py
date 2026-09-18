@@ -36,7 +36,6 @@ def _load_classes(config: Config) -> tuple[AbstractRecordKeeper, AbstractSourceP
 def main():
     action, config = _load_parameters()
     record_keeper, source_provider, destination_system = _load_classes(config)
-    config.expand()
     driver = Driver(config, record_keeper, source_provider, destination_system)
     match action:
         case Action.INSTALL:
