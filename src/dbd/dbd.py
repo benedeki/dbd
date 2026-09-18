@@ -1,4 +1,3 @@
-#
 # Copyright 2026 David Benedeki, All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
 import sys
 from enum import Enum
 
@@ -36,12 +35,12 @@ def _load_classes(config: Config) -> tuple[AbstractRecordKeeper, AbstractSourceP
 
 def main():
     action, config = _load_parameters()
-    record_keeper, source_provider, destination_manager = _load_classes(config)
-    driver = Driver(config, record_keeper, source_provider, destination_manager)
+    record_keeper, source_provider, destination_system = _load_classes(config)
+    config.expand()
+    driver = Driver(config, record_keeper, source_provider, destination_system)
     match action:
         case Action.INSTALL:
             driver.install()
-            pass
         case _:
             raise NotImplementedError
 

@@ -1,0 +1,67 @@
+#
+# Copyright 2026 David Benedeki, All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Test
+
+on:
+  pull_request:
+    branches:
+      - main, master
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  python-tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pump_well
+    steps:
+
+      - name: Check if needed
+        working-directory: .
+        run: echo "No Python code changes — skipping tests."
+
+      - name: Download aws
+        uses: actions/download-artifact@v8
+        with:
+          name: repo-aws
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.10'
+
+      - name: Install uv
+        shell: bash
+        env:
+          UV_VERSION: 0.7.21
+        run: pip install uv==$UV_VERSION
+
+      - name: Install dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Lint
+        env:
+          CI: true
+        run: make lint
+
+      - name: Test
+        env:
+          CI: true
+        run: make test

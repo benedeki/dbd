@@ -1,4 +1,3 @@
-#
 # Copyright 2026 David Benedeki, All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
+
+from __future__ import annotations
+
 import json
 import re
 from pathlib import Path
@@ -27,52 +28,66 @@ class Config:
     def __init__(self, data: dict[str, Any]):
         self._data = data
 
-
     @classmethod
-    def from_file(cls, filename: str, root: str | None= None) -> "Config":
+    def from_file(
+        cls,
+        filename: str,
+        root: str | None = None,
+        secret_reader: AbstractSecretReader | None = None,
+    ) -> Config:
         root_path = Path(root) if root is not None else None
-        data = cls._from_file(filename, root_path)
+        data = cls._from_file(filename, root_path, secret_reader)
         return cls(data)
 
     @classmethod
-    def _from_file(cls, filename: str, root: Path | None= None) -> dict[str, Any]:
+    def _from_file(
+        cls,
+        filename: str,
+        root: Path | None = None,
+        secret_reader: AbstractSecretReader | None = None,
+    ) -> dict[str, Any]:
         file_path = Path(filename)
         if not file_path.is_absolute() and root is not None:
             file_path = root / file_path
         containing_dir = file_path.parent
         data = cls._load_file(file_path)
-        data = cls._expand_config(data, containing_dir)
-        return data
+        return cls._expand_config(data, containing_dir, secret_reader)
+
+    @classmethod
+    def _expand_value(
+        cls,
+        value: Any,
+        root: Path,
+        secret_reader: AbstractSecretReader | None = None,
+    ) -> Any:
+        if isinstance(value, dict):
+            return {key: cls._expand_value(val, root, secret_reader) for key, val in value.items()}
+        if isinstance(value, list):
+            return [cls._expand_value(item, root, secret_reader) for item in value]
+        if isinstance(value, str):
+            match = REFERENCE_PATTERN.fullmatch(value)
+            if match is None:
+                return value
+            reference_type: str = match.group("type")
+            reference_value: str = match.group("value")
+            match reference_type:
+                case "FILE":
+                    return cls._from_file(reference_value, root)
+                case "SECRET" if secret_reader:
+                    secret = secret_reader.get_secret(reference_value)
+                    return secret if secret is not None else value
+                case _:
+                    return value
+        return value
 
     @classmethod
     def _expand_config(
         cls,
         data: dict[str, Any],
         root: Path,
-        secret_reader: AbstractSecretReader | None = None
+        secret_reader: AbstractSecretReader | None = None,
     ) -> dict[str, Any]:
-        expanded = dict(data)
-        for key, value in expanded.items():
-            if not isinstance(value, str):
-                continue
-
-            match = REFERENCE_PATTERN.fullmatch(value)
-            if match is None:
-                continue
-
-            reference_type: str = match.group("type")
-            reference_value: str = match.group("value")
-            match reference_type:
-                case "FILE":
-                    expanded[key] = cls._from_file(reference_value, root)
-                case "SECRET" if secret_reader:
-                    secret = secret_reader.get_secret(reference_value)
-                    if secret is not None:
-                        expanded[key] = secret
-                case _:
-                    continue
-
-        return expanded
+        return {key: cls._expand_value(val, root, secret_reader) for key, val in data.items()}
 
     @classmethod
     def _load_file(cls, file_path: Path) -> dict[str, Any]:
