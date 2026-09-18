@@ -34,6 +34,7 @@ jobs:
             --verbose --no-progress
             './**/*.md'
           fail: true
+          failIfEmpty: false
 
   check-license-header:
     name: Check License Header
