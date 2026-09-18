@@ -142,8 +142,8 @@ def test_expand_preserves_unresolved_references():
 def test_has_key_reports_whether_key_exists():
     config = Config({"name": "example"})
 
-    assert config.has_key("name") is True
-    assert config.has_key("missing") is False
+    assert "name" in config
+    assert "missing" not in config
 
 
 def test_get_returns_configured_value():
@@ -199,16 +199,21 @@ def test_get_as_list_returns_list_or_wraps_scalar():
     assert config.get_as_list("missing", ["default"]) == ["default"]
 
 
-def test_get_as_config_returns_config_or_wraps_scalar():
-    config = Config({"nested": {"name": "example"}, "value": "example"})
+def test_get_as_config_returns_config_for_mapping():
+    config = Config({"nested": {"name": "example"}})
 
     nested = config.get_as_config("nested")
-    wrapped = config.get_as_config("value")
 
     assert nested is not None
     assert nested._data == {"name": "example"}
+
+
+@pytest.mark.parametrize("value", ["example", 42, True, 3.14])
+def test_get_as_config_wraps_scalar_value(value):
+    wrapped = Config({"value": value}).get_as_config("value")
+
     assert wrapped is not None
-    assert wrapped._data == {"value": "example"}
+    assert wrapped._data == {"value": value}
 
 
 @pytest.mark.parametrize(

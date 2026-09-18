@@ -102,7 +102,7 @@ class Config:
     def expand(self, secret_reader: AbstractSecretReader):
         self._data = self._expand_config(self._data, Path.cwd(), secret_reader)
 
-    def has_key(self, key: str) -> bool:
+    def __contains__(self, key: str) -> bool:
         return key in self._data
 
     def get(self, key: str) -> Any:
@@ -155,7 +155,7 @@ class Config:
         if value is None:
             raise ValueError(f"Configuration key '{key}' not found.")
         if not isinstance(value, dict):
-            value = {key: value}
+            value = {"value": value}
         return Config(value)
 
 REFERENCE_PATTERN = re.compile(r"^__(?P<type>[A-Z]+)\((?P<value>.+)\)$")
