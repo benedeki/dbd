@@ -14,45 +14,48 @@
 
 import hashlib
 import re
-from dataclasses import dataclass, field
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
 from dbd.abstract.abstract_source_provider import AbstractSourceProvider
+from dbd.core.config import Config
 from dbd.core.configurable import Configurable
 from dbd.core.operation_status import OpFailure, OpSuccess, OpWarning
 
 
-@dataclass(frozen=True)
 class Driver(Configurable):
     """The main execution class."""
-    record_keeper: AbstractRecordKeeper
-    source_provider: AbstractSourceProvider
-    destination_system: AbstractDestinationSystem
-    mappings: dict[str, str] = field(init=False)
 
-    def __post_init__(self):
-        object.__setattr__(self, "mappings", self._extract_mappings())
+    def __init__(self,
+                 config: Config,
+                 record_keeper: AbstractRecordKeeper,
+                 source_provider: AbstractSourceProvider,
+                 destination_system: AbstractDestinationSystem):
+        super().__init__(config)
+        self._record_keeper = record_keeper
+        self._source_provider = source_provider
+        self._destination_system = destination_system
+        self._mappings = self._extract_mappings()
 
     def install(self) -> dict[str, str]:
         """Read and process the sources and apply them to the destination system."""
-        self.record_keeper.start_session(self.config)
+        self._record_keeper.start_session(self.config)
         warnings = {}
-        for source_name in self.source_provider.get_sources_list():
-            source_content = self._map_source_variables(self.source_provider.get_source(source_name))
+        for source_name in self._source_provider.get_sources_list():
+            source_content = self._map_source_variables(self._source_provider.get_source(source_name))
             source_hash = self._compute_hash(source_content)
-            if not self.record_keeper.check_source_for_deploy(source_name, source_hash):
-                result = self.destination_system.deploy(source_content)
+            if not self._record_keeper.check_source_for_deploy(source_name, source_hash):
+                result = self._destination_system.deploy(source_content)
                 match result:
                     case OpSuccess():
-                        self.record_keeper.record(source_name, source_hash)
+                        self._record_keeper.record(source_name, source_hash)
                     case OpWarning(msg):
                         warnings[source_name] = msg
-                        self.record_keeper.record(source_name, source_hash)
+                        self._record_keeper.record(source_name, source_hash)
                     case OpFailure(msg):
-                        self.record_keeper.fail_session(source_name, source_hash, msg)
+                        self._record_keeper.fail_session(source_name, source_hash, msg)
 
-        self.record_keeper.end_session(warnings)
+        self._record_keeper.end_session(warnings)
         return warnings
 
     @staticmethod
@@ -64,18 +67,18 @@ class Driver(Configurable):
 
     def _extract_mappings(self) -> dict[str, str]:
         """Expand the mapping keys to include the start and end markers."""
-        mapping: dict[str, str] = {} # TODO self.config.get("mappings", {})
+        mapping: dict[str, str] = self.config.get_as_dict("mappings", {})
         start_marker = "{{"
         end_marker = "}}"
         return {f"{start_marker}{k}{end_marker}": v for k, v in mapping.items()}
 
     def _map_source_variables(self, source: str) -> str:
         """Map the placeholders in the source string."""
-        if not self.mappings:
+        if not self._mappings:
             return source
         # Sort by key length descending so longer keys match before shorter ones
         # that might be substrings of them (e.g. "cat" vs "category")
         pattern = re.compile(
-            "|".join(re.escape(k) for k in sorted(self.mappings, key=len, reverse=True))
+            "|".join(re.escape(k) for k in sorted(self._mappings, key=len, reverse=True))
         )
-        return pattern.sub(lambda m: self.mappings[m.group(0)], source)
+        return pattern.sub(lambda m: self._mappings[m.group(0)], source)

@@ -12,22 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dataclasses import dataclass, field
 from pathlib import Path
 
 from dbd.abstract.abstract_source_provider import AbstractSourceProvider
+from dbd.core.config import Config
 
 
-@dataclass(frozen=True)
 class SourceProvider(AbstractSourceProvider):
-    source_dir: Path = field(init=False)
-    source_file_masks: list[str] = field(init=False)
 
-    def __post_init__(self):
-        object.__setattr__(self, "source_dir", Path(self.config.get_as_str("path")))
-        object.__setattr__(self, "source_file_masks", self.config.get_as_list("file_masks", ["*"]))
+    @property
+    def source_dir(self) -> Path:
+        return self._source_dir
 
-    def get_sources_list(self) -> list[str]:
+    @property
+    def source_file_masks(self) -> list[str]:
+        return self._source_file_masks
+
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self._source_dir = Path(self.config.get_as_str("path"))
+        self._source_file_masks = self.config.get_as_list("file_masks", ["*"])
+
+    def _get_sources_list(self) -> list[str]:
         source_files = [
             path.relative_to(self.source_dir)
             for path in self.source_dir.rglob("*")
@@ -36,5 +42,5 @@ class SourceProvider(AbstractSourceProvider):
         source_files.sort(key=lambda path: (len(path.parts), path.as_posix()))
         return [path.as_posix() for path in source_files]
 
-    def get_source(self, source_name: str) -> str:
+    def _get_source(self, source_name: str) -> str:
         return (self.source_dir / source_name).read_text(encoding="utf-8")

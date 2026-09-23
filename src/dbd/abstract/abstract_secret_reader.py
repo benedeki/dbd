@@ -12,16 +12,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Any
 
 from dbd.core.configurable import Configurable
 
 
-class AbstractSecretReader(Configurable):
+class AbstractSecretReader(Configurable, ABC):
     """Abstract interface for reading secrets from external secret stores."""
 
     @abstractmethod
-    def get_secret(self, secret_name: str) -> str | dict[str, Any] | None:
+    def get_secret(self, secret_name: str) -> str | dict[str, Any] | list[Any] | None:
         """Return a secret of the given name."""
 
+    def get_secret_str(self, secret_name: str) -> str:
+        """Return a secret of the given name as a string."""
+        result = self.get_secret(secret_name)
+        if not isinstance(result, str):
+            raise ValueError(f"Secret '{secret_name}' does not exist or is not a string.")
+        return result
+
+    def get_secret_dict(self, secret_name: str) -> dict[str, Any]:
+        """Return a secret of the given name as a dictionary."""
+        result = self.get_secret(secret_name)
+        if not isinstance(result, dict):
+            raise ValueError(f"Secret '{secret_name}' does not exist or is not a dictionary.")
+        return result
+
+    def get_secret_list(self, secret_name: str) -> list:
+        """Return a list of secrets of the given names as strings."""
+        result = self.get_secret(secret_name)
+        if not isinstance(result, list):
+            raise ValueError(f"Secret '{secret_name}' does not exist or is not a list.")
+        return result

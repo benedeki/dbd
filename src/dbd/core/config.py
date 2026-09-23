@@ -150,12 +150,15 @@ class Config:
             value = [value]
         return value
 
-    def get_as_config(self, key: str, default: dict[str, Any] | None = None) -> Config:
+    def get_as_dict(self, key: str, default: dict[str, Any] | None = None) -> dict[str, Any]:
         value = self._data.get(key, default)
         if value is None:
             raise KeyError(f"Configuration key '{key}' not found.")
         if not isinstance(value, dict):
-            value = {"value": value}
-        return Config(value)
+            raise ValueError(f"Configuration key '{key}' is not a dictionary.")
+        return value
+
+    def get_as_config(self, key: str, default: dict[str, Any] | None = None) -> Config:
+        return Config(self.get_as_dict(key, default))
 
 REFERENCE_PATTERN = re.compile(r"^__(?P<type>[A-Z]+)\((?P<value>.+)\)$")

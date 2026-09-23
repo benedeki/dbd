@@ -45,3 +45,34 @@ jobs:
         with:
           tool: hawkeye
       - run: hawkeye check
+
+  check-json-schemas:
+    name: Check JSON Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+      - name: Check schema filenames and syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -d '' schema_files < <(find documentation/schemas -type f -print0)
+          if [ "${#schema_files[@]}" -eq 0 ]; then
+            echo "No files found under documentation/schemas"
+            exit 1
+          fi
+
+          for schema_file in "${schema_files[@]}"; do
+            case "$schema_file" in
+              *.schema.json) ;;
+              *)
+                echo "Schema file must end with .schema.json: $schema_file"
+                exit 1
+                ;;
+            esac
+          done
+
+          npx --yes ajv-cli@5 compile --spec=draft2020 -s "documentation/schemas/**/*.schema.json"

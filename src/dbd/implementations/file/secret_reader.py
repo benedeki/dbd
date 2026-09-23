@@ -13,25 +13,25 @@
 # limitations under the License.
 
 import json
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from dbd.abstract.abstract_secret_reader import AbstractSecretReader
+from dbd.core.config import Config
 
 
-@dataclass(frozen=True)
 class SecretReader(AbstractSecretReader):
-    _data: dict[str, Any] = field(init=False)
+    _data: dict[str, Any]
 
-
-    def get_secret(self, secret_name: str) -> str | dict[str, Any] | None:
+    def get_secret(self, secret_name: str) -> str | dict[str, Any] | list[Any] | None:
         result = self._data.get(secret_name)
-        if result is None or isinstance(result, dict):
+        if result is None or isinstance(result, dict) or isinstance(result, list):
             return result
+
         return str(result)
 
-    def __post_init__(self):
+    def __init__(self, config: Config):
+        super().__init__(config)
         file_name = self.config.get_as_str("file_name")
         file_type = self.config.get_as_str("type", "json")
         file_path = Path(file_name)

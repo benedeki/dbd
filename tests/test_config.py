@@ -36,6 +36,15 @@ def test_from_file_loads_json_object(tmp_path):
     assert config._data == {"name": "example", "enabled": True}
 
 
+def test_from_file_resolves_relative_filename_from_root(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text('{"name": "example"}', encoding="utf-8")
+
+    config = Config.from_file("config.json", root=str(tmp_path))
+
+    assert config._data == {"name": "example"}
+
+
 def test_from_file_expands_nested_file_references_relative_to_config(tmp_path):
     included_path = tmp_path / "included.json"
     included_path.write_text('{"value": "from included file"}', encoding="utf-8")
@@ -66,6 +75,20 @@ def test_from_file_expands_file_references_in_nested_values(tmp_path):
     }
 
 
+def test_from_file_expands_file_references_relative_to_included_file(tmp_path):
+    nested_dir = tmp_path / "nested"
+    nested_dir.mkdir()
+    nested_path = nested_dir / "included.json"
+    nested_path.write_text('{"value": "__FILE(values.json)"}', encoding="utf-8")
+    (nested_dir / "values.json").write_text('{"name": "nested value"}', encoding="utf-8")
+    config_path = tmp_path / "config.json"
+    config_path.write_text('{"included": "__FILE(nested/included.json)"}', encoding="utf-8")
+
+    config = Config.from_file(str(config_path))
+
+    assert config._data == {"included": {"value": {"name": "nested value"}}}
+
+
 def test_from_file_expands_secret_references(tmp_path):
     config_path = tmp_path / "config.json"
     config_path.write_text('{"password": "__SECRET(database-password)"}', encoding="utf-8")
@@ -74,6 +97,15 @@ def test_from_file_expands_secret_references(tmp_path):
     config = Config.from_file(str(config_path), secret_reader=secret_reader)
 
     assert config._data == {"password": "secret-value"}
+
+
+def test_from_file_preserves_secret_reference_without_secret_reader(tmp_path):
+    config_path = tmp_path / "config.json"
+    config_path.write_text('{"password": "__SECRET(database-password)"}', encoding="utf-8")
+
+    config = Config.from_file(str(config_path))
+
+    assert config._data == {"password": "__SECRET(database-password)"}
 
 
 def test_from_file_preserves_unresolved_references(tmp_path):
@@ -163,6 +195,7 @@ def test_get_as_str_returns_value_and_joins_lists():
 
     assert config.get_as_str("name") == "example"
     assert config.get_as_str("items") == "one\n2\nTrue"
+    assert Config({"value": 42}).get_as_str("value") == "42"
 
 
 def test_get_as_str_uses_default():
@@ -181,6 +214,28 @@ def test_scalar_getters_convert_values(getter, value, expected):
     config = Config({"value": value})
 
     assert getattr(config, getter)("value") == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (True, True),
+        (False, False),
+        ("true", True),
+        (" YES ", True),
+        ("1", True),
+        ("false", False),
+        ("no", False),
+        ("0", False),
+    ],
+)
+def test_get_as_bool_converts_supported_values(value, expected):
+    assert Config({"value": value}).get_as_bool("value") is expected
+
+
+def test_get_as_bool_rejects_invalid_value():
+    with pytest.raises(ValueError, match="Cannot interpret 'maybe' as boolean"):
+        Config({"value": "maybe"}).get_as_bool("value")
 
 
 def test_scalar_getters_use_defaults():
@@ -208,17 +263,35 @@ def test_get_as_config_returns_config_for_mapping():
     assert nested._data == {"name": "example"}
 
 
-@pytest.mark.parametrize("value", ["example", 42, True, 3.14])
-def test_get_as_config_wraps_scalar_value(value):
-    wrapped = Config({"value": value}).get_as_config("value")
+def test_get_as_dict_returns_mapping():
+    value = {"nested": ["value"]}
 
-    assert wrapped is not None
-    assert wrapped._data == {"value": value}
+    assert Config({"value": value}).get_as_dict("value") is value
+
+
+@pytest.mark.parametrize("value", ["example", 42, True, 3.14])
+def test_get_as_dict_rejects_scalar_value(value):
+    with pytest.raises(ValueError, match="is not a dictionary"):
+        Config({"value": value}).get_as_dict("value")
+
+
+@pytest.mark.parametrize("value", ["example", 42, True, 3.14])
+def test_get_as_config_rejects_scalar_value(value):
+    with pytest.raises(ValueError, match="is not a dictionary"):
+        Config({"value": value}).get_as_config("value")
 
 
 @pytest.mark.parametrize(
     "getter",
-    ["get_as_str", "get_as_int", "get_as_bool", "get_as_float", "get_as_list", "get_as_config"]
+    [
+        "get_as_str",
+        "get_as_int",
+        "get_as_bool",
+        "get_as_float",
+        "get_as_list",
+        "get_as_dict",
+        "get_as_config",
+    ]
 )
 def test_getters_raise_for_missing_values(getter):
     with pytest.raises(KeyError, match="Configuration key 'missing' not found"):

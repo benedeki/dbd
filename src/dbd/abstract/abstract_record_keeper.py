@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from dbd.core.config import Config
 from dbd.core.configurable import Configurable
 
 
-class AbstractRecordKeeper(Configurable):
+class AbstractRecordKeeper(Configurable, ABC):
     @abstractmethod
     def start_session(self, full_config: Config):
         """Start a session with the record keeper."""

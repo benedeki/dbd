@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from dbd.core.configurable import Configurable
 from dbd.core.operation_status import OperationStatus
 
 
-class AbstractDestinationSystem(Configurable):
+class AbstractDestinationSystem(Configurable, ABC):
     @abstractmethod
     def deploy(self, source: str) -> OperationStatus:
         """Deploy the given source to the destination system."""
