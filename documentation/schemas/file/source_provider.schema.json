@@ -8,7 +8,7 @@
     "path": {
       "title": "Path",
       "description": "Root directory to scan for source files. Must exist at validation time.",
-      "type": "string",
+      "type": "string"
     },
     "file_masks": {
       "title": "Files Masks",
