@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import ABC
-from dataclasses import dataclass
-
 from dbd.core.config import Config
 
 
-@dataclass(frozen=True)
-class Configurable(ABC):
+class Configurable:
     """Base class for configurable objects."""
-    config: Config
+
+    def __init__(self, config: Config):
+        self._config = config
+
+    @property
+    def config(self) -> Config:
+        return self._config

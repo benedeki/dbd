@@ -12,16 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 from dbd.core.configurable import Configurable
 
 
-class AbstractSourceProvider(Configurable):
+class AbstractSourceProvider(Configurable, ABC):
+
+    _sources_list: list[str] | None = None
+
     @abstractmethod
-    def get_sources_list(self) -> list[str]:
+    def _get_sources_list(self) -> list[str]:
         """Return a list of source names."""
 
     @abstractmethod
+    def _get_source(self, source_name: str) -> str:
+        """Return the source for the given source name."""
+
+    def get_sources_list(self) -> list[str]:
+        """Return a list of source names."""
+        result: list[str] = self._get_sources_list()
+        self._sources_list = result
+        return result
+
     def get_source(self, source_name: str) -> str:
         """Return the source for the given source name."""
+        if self._sources_list is None:
+            _sources = self.get_sources_list()
+        else:
+            _sources = self._sources_list
+
+        if source_name not in _sources:
+            raise ValueError(f"Source '{source_name}' does not exist.")
+
+        return self._get_source(source_name)

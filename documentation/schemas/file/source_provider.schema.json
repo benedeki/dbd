@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/benedeki/dbd/documentation/schemas/file/source_provider.schema.json",
+  "title": "File SourceProvider Config",
+  "description": "Config node for a filesystem-backed SourceProvider.\n\nPoints at a directory of source files and selects which of them\nare exposed via get_sources_list()/get_source().",
+  "type": "object",
+  "properties": {
+    "path": {
+      "title": "Path",
+      "description": "Root directory to scan for source files. Must exist at validation time.",
+      "type": "string"
+    },
+    "file_masks": {
+      "title": "Files Masks",
+      "description": "Glob patterns (fnmatch-style, via Path.match) used to filter files found under 'path'. A file is included if it matches ANY mask. Defaults to ['*'] (all files).",
+      "type": "array",
+      "items": {"type": "string"},
+      "default": ["*"]
+    }
+  },
+  "required": ["path"]
+}

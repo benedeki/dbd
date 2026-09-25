@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/benedeki/dbd/documentation/schemas/driver.schema.json",
+  "title": "Driver Config",
+  "description": "Configuration for the database deployment driver.",
+  "type": "object",
+  "properties": {
+    "mappings": {
+      "title": "Mappings",
+      "description": "Variable mappings applied to source contents before deployment.",
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {}
+    }
+  }
+}
