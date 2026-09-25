@@ -83,7 +83,7 @@ def test_returns_none_when_secret_is_not_found():
         pass
 
     client = Mock()
-    client.exception.ResourceNotFoundException = ResourceNotFoundError
+    client.exceptions.ResourceNotFoundException = ResourceNotFoundError
     client.get_secret_value.side_effect = ResourceNotFoundError
     reader = _create_reader(client)
 
