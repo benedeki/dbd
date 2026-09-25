@@ -12,8 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pytest
+
 from dbd.core.config import Config
 from dbd.implementations.file.source_provider import SourceProvider
+
+
+def test_init_raises_for_missing_source_directory(tmp_path):
+    source_dir = tmp_path / "missing"
+
+    with pytest.raises(FileNotFoundError, match="Source directory does not exist"):
+        SourceProvider(Config({"path": str(source_dir)}))
 
 
 def test_get_sources_list_returns_matching_files_with_direct_files_first(tmp_path):

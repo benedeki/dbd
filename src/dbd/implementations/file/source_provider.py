@@ -31,6 +31,8 @@ class SourceProvider(AbstractSourceProvider):
     def __init__(self, config: Config):
         super().__init__(config)
         self._source_dir = Path(self.config.get_as_str("path"))
+        if not self._source_dir.exists():
+            raise FileNotFoundError(f"Source directory does not exist: {self._source_dir}")
         self._source_file_masks = self.config.get_as_list("file_masks", ["*"])
 
     def _get_sources_list(self) -> list[str]:

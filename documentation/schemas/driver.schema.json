@@ -5,8 +5,8 @@
   "description": "Configuration for the database deployment driver.",
   "type": "object",
   "properties": {
-    "mapping": {
-      "title": "Mapping",
+    "mappings": {
+      "title": "Mappings",
       "description": "Variable mappings applied to source contents before deployment.",
       "type": "object",
       "additionalProperties": {

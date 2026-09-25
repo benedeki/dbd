@@ -38,6 +38,9 @@ class SecretReader(AbstractSecretReader):
         match file_type:
             case "json":
                 with file_path.open(encoding="utf-8") as file:
-                    object.__setattr__(self, "_data", json.load(file))
+                    data = json.load(file)
+                    if not isinstance(data, dict):
+                      raise ValueError(f"Secrets file must contain a JSON object: {file_path}")
+                    self._data = data
             case _:
                 raise ValueError(f"Unsupported file type: {file_type}")
