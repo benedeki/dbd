@@ -34,7 +34,7 @@ class SecretReader(AbstractSecretReader):
     def get_secret(self, secret_name: str) -> str | dict[str, Any] | list[Any] | None:
         try:
             response = self.client.get_secret_value(SecretId=secret_name)
-        except self.client.exception.ResourceNotFoundException:
+        except self.client.exceptions.ResourceNotFoundException:
             # TODO Add logging #25
             return None
         if "SecretBinary" in response:
