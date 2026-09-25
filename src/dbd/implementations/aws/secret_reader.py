@@ -38,8 +38,8 @@ class SecretReader(AbstractSecretReader):
             # TODO Add logging #25
             return None
         if "SecretBinary" in response:
-            # TODO Add logging #25
-            return None
+            # TODO Add logging #25  return None
+            raise ValueError(f"Secret '{secret_name}' is binary, which is not supported.")
         secret_value = response.get("SecretString")
         if secret_value is None:
             return None

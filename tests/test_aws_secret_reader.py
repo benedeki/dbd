@@ -14,6 +14,8 @@
 
 from unittest.mock import Mock, patch
 
+import pytest
+
 from dbd.core.config import Config
 from dbd.implementations.aws.secret_reader import SecretReader
 
@@ -75,8 +77,8 @@ def test_returns_none_when_secret_is_binary():
     client.get_secret_value.return_value = {"SecretBinary": b"secret-value"}
     reader = _create_reader(client)
 
-    assert reader.get_secret("binary-secret") is None
-
+    with pytest.raises(ValueError, match="Secret 'binary-secret' is binary, which is not supported."):
+        reader.get_secret("binary-secret")
 
 def test_returns_none_when_secret_is_not_found():
     class ResourceNotFoundError(Exception):
