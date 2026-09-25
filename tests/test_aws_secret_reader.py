@@ -38,17 +38,53 @@ def test_returns_dictionary_from_secret_string():
     client.get_secret_value.assert_called_once_with(SecretId="database")
 
 
-def test_returns_scalar_secret_string_without_decoding():
+def test_returns_decoded_scalar_secret_string():
     client = Mock()
     client.get_secret_value.return_value = {"SecretString": '"secret-value"'}
     reader = _create_reader(client)
 
-    assert reader.get_secret("password") == '"secret-value"'
+    assert reader.get_secret("password") == "secret-value"
+
+
+def test_returns_list_from_secret_string():
+    client = Mock()
+    client.get_secret_value.return_value = {"SecretString": '["secret-value", 42]'}
+    reader = _create_reader(client)
+
+    assert reader.get_secret("passwords") == ["secret-value", 42]
+
+
+def test_returns_undecodable_secret_string_as_is():
+    client = Mock()
+    client.get_secret_value.return_value = {"SecretString": "secret-value"}
+    reader = _create_reader(client)
+
+    assert reader.get_secret("password") == "secret-value"
 
 
 def test_returns_none_when_secret_string_is_missing():
     client = Mock()
     client.get_secret_value.return_value = {}
+    reader = _create_reader(client)
+
+    assert reader.get_secret("missing") is None
+
+
+def test_returns_none_when_secret_is_binary():
+    client = Mock()
+    client.get_secret_value.return_value = {"SecretBinary": b"secret-value"}
+    reader = _create_reader(client)
+
+    assert reader.get_secret("binary-secret") is None
+
+
+def test_returns_none_when_secret_is_not_found():
+    class ResourceNotFoundError(Exception):
+        pass
+
+    client = Mock()
+    client.exception.ResourceNotFoundException = ResourceNotFoundError
+    client.get_secret_value.side_effect = ResourceNotFoundError
     reader = _create_reader(client)
 
     assert reader.get_secret("missing") is None

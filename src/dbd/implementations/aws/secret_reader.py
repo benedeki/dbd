@@ -31,13 +31,28 @@ class SecretReader(AbstractSecretReader):
         self.region_name = config.get("region_name")
         self.client = boto3.client("secretsmanager", region_name=self.region_name)
 
-    def get_secret(self, secret_name: str) -> str | dict[str, Any] | None:
-        response = self.client.get_secret_value(SecretId=secret_name)
-        secret_string = response.get("SecretString")
-        if secret_string is None:
+    def get_secret(self, secret_name: str) -> str | dict[str, Any] | list[Any] | None:
+        try:
+            response = self.client.get_secret_value(SecretId=secret_name)
+        except self.client.exception.ResourceNotFoundException:
+            # TODO Add logging #25
             return None
-        raw = json.loads(secret_string)
-        if not isinstance(raw, dict):
-            return str(secret_string)
-        data: dict[str, Any] = raw
-        return data
+        if "SecretBinary" in response:
+            # TODO Add logging #25
+            return None
+        secret_value = response.get("SecretString")
+        if secret_value is None:
+            return None
+        try:
+            raw = json.loads(secret_value)
+            if isinstance(raw, dict):
+                dict_data: dict[str, Any] = raw
+                return dict_data
+            elif isinstance(raw, list):
+                list_data: list[Any] = raw
+                return list_data
+            else:
+                return str(raw)
+        except json.JSONDecodeError:
+            return str(secret_value)
+
