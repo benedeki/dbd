@@ -14,6 +14,7 @@
 
 import hashlib
 import re
+from typing import Any
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
@@ -67,10 +68,10 @@ class Driver(Configurable):
 
     def _extract_mappings(self) -> dict[str, str]:
         """Expand the mapping keys to include the start and end markers."""
-        mapping: dict[str, str] = self.config.get_as_dict("mappings", {})
+        mapping: dict[str, Any] = self.config.get_as_dict("mappings", {})
         start_marker = "{{"
         end_marker = "}}"
-        return {f"{start_marker}{k}{end_marker}": v for k, v in mapping.items()}
+        return {f"{start_marker}{k}{end_marker}": str(v) for k, v in mapping.items()}
 
     def _map_source_variables(self, source: str) -> str:
         """Map the placeholders in the source string."""

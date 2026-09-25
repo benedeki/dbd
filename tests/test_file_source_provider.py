@@ -21,8 +21,16 @@ from dbd.implementations.file.source_provider import SourceProvider
 def test_init_raises_for_missing_source_directory(tmp_path):
     source_dir = tmp_path / "missing"
 
-    with pytest.raises(FileNotFoundError, match="Source directory does not exist"):
+    with pytest.raises(NotADirectoryError, match="Source path is not an existing directory"):
         SourceProvider(Config({"path": str(source_dir)}))
+
+
+def test_init_raises_when_source_path_is_file(tmp_path):
+    source_path = tmp_path / "source.sql"
+    source_path.write_text("source", encoding="utf-8")
+
+    with pytest.raises(NotADirectoryError, match="Source path is not an existing directory"):
+        SourceProvider(Config({"path": str(source_path)}))
 
 
 def test_get_sources_list_returns_matching_files_with_direct_files_first(tmp_path):
