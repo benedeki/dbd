@@ -16,7 +16,7 @@ import psycopg
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
 from dbd.core.config import Config
-from dbd.core.operation_status import OpFailure, OpSuccess, OperationStatus
+from dbd.core.operation_status import OperationStatus, OpFailure, OpSuccess
 
 
 class DestinationSystem(AbstractDestinationSystem):
@@ -39,6 +39,7 @@ class DestinationSystem(AbstractDestinationSystem):
     def init(self) -> None:
         if self.one_transaction:
             self._connection = self._connect()
+            self._transaction_failed = False
 
     def close(self) -> None:
         if self._connection is None:
@@ -58,7 +59,7 @@ class DestinationSystem(AbstractDestinationSystem):
                 if self._connection is None:
                     return OpFailure("No active connection for one_transaction mode.")
                 with self._connection.cursor() as cursor:
-                    cursor.execute(source)
+                    cursor.execute(source.encode("utf-8"))
             except psycopg.Error as error:
                 self._transaction_failed = True
                 return OpFailure(str(error))
@@ -73,7 +74,7 @@ class DestinationSystem(AbstractDestinationSystem):
                     password=self._password,
                 ) as connection:
                     with connection.cursor() as cursor:
-                        cursor.execute(source)
+                        cursor.execute(source.encode("utf-8"))
             except psycopg.Error as error:
                 return OpFailure(str(error))
 

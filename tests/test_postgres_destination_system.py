@@ -53,7 +53,7 @@ def test_executes_source_using_configured_connection(config: Config):
         user="dbd-user",
         password="secret",
     )
-    cursor.execute.assert_called_once_with("CREATE TABLE example (id integer);")
+    cursor.execute.assert_called_once_with(b"CREATE TABLE example (id integer);")
     assert result == OpSuccess()
 
 
