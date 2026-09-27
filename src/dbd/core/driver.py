@@ -41,6 +41,7 @@ class Driver(Configurable):
     def install(self) -> dict[str, str]:
         """Read and process the sources and apply them to the destination system."""
         self._record_keeper.start_session(self.config)
+        self._destination_system.init()
         warnings = {}
         for source_name in self._source_provider.get_sources_list():
             source_content = self._map_source_variables(self._source_provider.get_source(source_name))
@@ -55,7 +56,7 @@ class Driver(Configurable):
                         self._record_keeper.record(source_name, source_hash)
                     case OpFailure(msg):
                         self._record_keeper.fail_session(source_name, source_hash, msg)
-
+        self._destination_system.close()
         self._record_keeper.end_session(warnings)
         return warnings
 
