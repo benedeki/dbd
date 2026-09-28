@@ -41,21 +41,17 @@ class Driver(Configurable):
     def install(self) -> dict[str, str]:
         """Read and process the sources and apply them to the destination system."""
         self._record_keeper.start_session(self.config)
-        warnings = {}
-        for source_name in self._source_provider.get_sources_list():
-            source_content = self._map_source_variables(self._source_provider.get_source(source_name))
-            source_hash = self._compute_hash(source_content)
-            if not self._record_keeper.check_source_for_deploy(source_name, source_hash):
-                result = self._destination_system.deploy(source_content)
-                match result:
-                    case OpSuccess():
-                        self._record_keeper.record(source_name, source_hash)
-                    case OpWarning(msg):
-                        warnings[source_name] = msg
-                        self._record_keeper.record(source_name, source_hash)
-                    case OpFailure(msg):
-                        self._record_keeper.fail_session(source_name, source_hash, msg)
-
+        success = False
+        try:
+            self._destination_system.init()
+        except Exception as e:
+            self._record_keeper.fail_session("init", "", str(e))
+            raise
+        try:
+            warnings = self._push_source()
+            success = True
+        finally:
+            self._destination_system.close(success)
         self._record_keeper.end_session(warnings)
         return warnings
 
@@ -83,3 +79,20 @@ class Driver(Configurable):
             "|".join(re.escape(k) for k in sorted(self._mappings, key=len, reverse=True))
         )
         return pattern.sub(lambda m: self._mappings[m.group(0)], source)
+
+    def _push_source(self) -> dict[str, str]:
+        warnings = {}
+        for source_name in self._source_provider.get_sources_list():
+            source_content = self._map_source_variables(self._source_provider.get_source(source_name))
+            source_hash = self._compute_hash(source_content)
+            if not self._record_keeper.check_source_for_deploy(source_name, source_hash):
+                result = self._destination_system.deploy(source_content)
+                match result:
+                    case OpSuccess():
+                        self._record_keeper.record(source_name, source_hash)
+                    case OpWarning(msg):
+                        warnings[source_name] = msg
+                        self._record_keeper.record(source_name, source_hash)
+                    case OpFailure(msg):
+                        self._record_keeper.fail_session(source_name, source_hash, msg)
+        return warnings
