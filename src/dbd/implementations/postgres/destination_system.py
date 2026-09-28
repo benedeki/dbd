@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Any
+
 import psycopg
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
@@ -33,6 +35,8 @@ class DestinationSystem(AbstractDestinationSystem):
         self._dbname = connection_config.get_as_str("dbname")
         self._user = connection_config.get_as_str("user")
         self._password = connection_config.get_as_str("password")
+        self._sslmode = connection_config.get_as_str("sslmode", "prefer")
+        self._sslcert = connection_config.get_as_str("sslcert", "")
         self._connection: psycopg.Connection | None = None
         self._transaction_failed = False
 
@@ -66,13 +70,7 @@ class DestinationSystem(AbstractDestinationSystem):
             return OpSuccess()
         else:
             try:
-                with psycopg.connect(
-                    host=self._host,
-                    port=self._port,
-                    dbname=self._dbname,
-                    user=self._user,
-                    password=self._password,
-                ) as connection:
+                with self._connect() as connection:
                     with connection.cursor() as cursor:
                         cursor.execute(source.encode("utf-8"))
             except psycopg.Error as error:
@@ -81,10 +79,14 @@ class DestinationSystem(AbstractDestinationSystem):
             return OpSuccess()
 
     def _connect(self) -> psycopg.Connection:
-        return psycopg.connect(
-            host=self._host,
-            port=self._port,
-            dbname=self._dbname,
-            user=self._user,
-            password=self._password,
-        )
+        connection_parameters: dict[str, Any] = {
+            "host": self._host,
+            "port": self._port,
+            "dbname": self._dbname,
+            "user": self._user,
+            "password": self._password,
+            "sslmode": self._sslmode,
+        }
+        if self._sslcert:
+            connection_parameters["sslcert"] = self._sslcert
+        return psycopg.connect(**connection_parameters)

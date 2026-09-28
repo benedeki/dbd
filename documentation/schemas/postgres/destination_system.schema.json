@@ -41,9 +41,22 @@
           "title": "Password",
           "description": "The password for authenticating with the Postgres database.",
           "type": "string"
+        },
+        "sslmode": {
+          "title": "SSL Mode",
+          "description": "The SSL mode to use for the connection. One of 'disable', 'allow', 'prefer', 'require', 'verify-ca', or 'verify-full'.",
+          "type": "string",
+          "enum": ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"],
+          "default": "prefer"
+        },
+        "sslcert": {
+          "title": "SSL Certificate",
+          "description": "Path to the SSL client certificate file (if required).",
+          "type": "string"
         }
       },
-      "required": ["host", "port", "dbname", "user", "password"]
+      "required": ["host", "dbname", "user", "password"]
     }
-  }
+  },
+  "required": ["connection"]
 }

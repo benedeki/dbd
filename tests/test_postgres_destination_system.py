@@ -52,9 +52,28 @@ def test_executes_source_using_configured_connection(config: Config):
         dbname="dbd",
         user="dbd-user",
         password="secret",
+        sslmode="prefer",
     )
     cursor.execute.assert_called_once_with(b"CREATE TABLE example (id integer);")
     assert result == OpSuccess()
+
+
+def test_adds_ssl_certificate_when_configured():
+    connection = MagicMock()
+    connection_config = {
+        "host": "localhost",
+        "port": 5432,
+        "dbname": "dbd",
+        "user": "dbd-user",
+        "password": "secret",
+        "sslcert": "client.crt",
+    }
+    config = Config({"connection": connection_config})
+
+    with patch("psycopg.connect", return_value=connection) as connect:
+        DestinationSystem(config).init()
+
+    assert connect.call_args.kwargs["sslcert"] == "client.crt"
 
 
 def test_returns_failure_when_postgres_rejects_source(config: Config):
