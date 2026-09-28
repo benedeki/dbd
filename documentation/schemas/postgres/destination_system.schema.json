@@ -53,6 +53,12 @@
           "title": "SSL Certificate",
           "description": "Path to the SSL client certificate file (if required).",
           "type": "string"
+        },
+        "connect_timeout": {
+            "title": "Connect Timeout",
+            "description": "The maximum time in seconds to wait for a connection to be established. 0 or less means no timeout.",
+            "type": "integer",
+            "default": 10
         }
       },
       "required": ["host", "dbname", "user", "password"]

@@ -44,7 +44,7 @@ def test_executes_source_using_configured_connection(config: Config):
         destination = DestinationSystem(config)
         destination.init()
         result = destination.deploy("CREATE TABLE example (id integer);")
-        destination.close()
+        destination.close(result == OpSuccess())
 
     connect.assert_called_once_with(
         host="localhost",
@@ -53,6 +53,7 @@ def test_executes_source_using_configured_connection(config: Config):
         user="dbd-user",
         password="secret",
         sslmode="prefer",
+        connect_timeout=10,
     )
     cursor.execute.assert_called_once_with(b"CREATE TABLE example (id integer);")
     assert result == OpSuccess()
@@ -87,7 +88,7 @@ def test_returns_failure_when_postgres_rejects_source(config: Config):
         destination = DestinationSystem(config)
         destination.init()
         result = destination.deploy("INVALID SQL")
-        destination.close()
+        destination.close(result == OpSuccess())
 
     assert result == OpFailure("syntax error")
     connection.rollback.assert_called_once_with()
@@ -101,7 +102,7 @@ def test_rejects_deploy_before_initializing_one_transaction(config: Config):
     result = destination.deploy("CREATE TABLE example (id integer);")
 
     assert result == OpFailure("No active connection for one_transaction mode.")
-    destination.close()
+    destination.close(False)
 
 
 def test_returns_failure_for_individual_transaction_error():
@@ -138,7 +139,7 @@ def test_executes_repeated_deploys_in_one_transaction(config: Config):
         destination.init()
         first_result = destination.deploy("CREATE TABLE example (id integer);")
         second_result = destination.deploy("INSERT INTO example VALUES (1);")
-        destination.close()
+        destination.close(first_result == OpSuccess() and second_result == OpSuccess())
 
     connect.assert_called_once()
     assert cursor.execute.call_count == 2

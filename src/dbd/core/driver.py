@@ -41,14 +41,17 @@ class Driver(Configurable):
     def install(self) -> dict[str, str]:
         """Read and process the sources and apply them to the destination system."""
         self._record_keeper.start_session(self.config)
+        success = False
         try:
             self._destination_system.init()
         except Exception as e:
             self._record_keeper.fail_session("init", "", str(e))
+            raise
         try:
-            warnings = self._x()
+            warnings = self._push_source()
+            success = True
         finally:
-            self._destination_system.close()
+            self._destination_system.close(success)
         self._record_keeper.end_session(warnings)
         return warnings
 
@@ -77,7 +80,7 @@ class Driver(Configurable):
         )
         return pattern.sub(lambda m: self._mappings[m.group(0)], source)
 
-    def _x(self) -> dict[str, str]:
+    def _push_source(self) -> dict[str, str]:
         warnings = {}
         for source_name in self._source_provider.get_sources_list():
             source_content = self._map_source_variables(self._source_provider.get_source(source_name))

@@ -27,6 +27,6 @@ class AbstractDestinationSystem(Configurable, ABC):
         """Initialize the destination system before deployment."""
         pass
 
-    def close(self) -> None:
+    def close(self, was_successful: bool) -> None:
         """Close the destination system after deployment."""
         pass

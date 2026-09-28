@@ -37,6 +37,7 @@ class DestinationSystem(AbstractDestinationSystem):
         self._password = connection_config.get_as_str("password")
         self._sslmode = connection_config.get_as_str("sslmode", "prefer")
         self._sslcert = connection_config.get_as_str("sslcert", "")
+        self._connect_timeout = connection_config.get_as_int("connect_timeout", 10)
         self._connection: psycopg.Connection | None = None
         self._transaction_failed = False
 
@@ -45,11 +46,11 @@ class DestinationSystem(AbstractDestinationSystem):
             self._connection = self._connect()
             self._transaction_failed = False
 
-    def close(self) -> None:
+    def close(self, was_successful: bool) -> None:
         if self._connection is None:
             return
         try:
-            if self._transaction_failed:
+            if self._transaction_failed or not was_successful:
                 self._connection.rollback()
             else:
                 self._connection.commit()
@@ -89,4 +90,6 @@ class DestinationSystem(AbstractDestinationSystem):
         }
         if self._sslcert:
             connection_parameters["sslcert"] = self._sslcert
+        if self._connect_timeout > 0:
+            connection_parameters["connect_timeout"] = self._connect_timeout
         return psycopg.connect(**connection_parameters)
