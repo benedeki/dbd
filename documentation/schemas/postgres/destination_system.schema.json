@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/benedeki/dbd/documentation/schemas/postgres/destination_system.schema.json",
+  "title": "Postgres DestinationSystem Config",
+  "description": "Config node for a Postgres-backed DestinationSystem.\n\nContains connection details and transaction settings.",
+  "type": "object",
+  "properties": {
+    "one_transaction": {
+      "title": "One Transaction",
+      "description": "Whether to execute all operations within a single transaction.",
+      "type": "boolean",
+      "default": true
+    },
+    "connection": {
+      "title": "Connection",
+      "description": "Connection details for the Postgres database.",
+      "type": "object",
+      "properties": {
+        "host": {
+          "title": "Host",
+          "description": "The hostname of the Postgres server.",
+          "type": "string"
+        },
+        "port": {
+          "title": "Port",
+          "description": "The port number of the Postgres server.",
+          "type": "integer",
+          "default": 5432
+        },
+        "dbname": {
+          "title": "Database Name",
+          "description": "The name of the Postgres database.",
+          "type": "string"
+        },
+        "user": {
+          "title": "User",
+          "description": "The username for authenticating with the Postgres database.",
+          "type": "string"
+        },
+        "password": {
+          "title": "Password",
+          "description": "The password for authenticating with the Postgres database.",
+          "type": "string"
+        },
+        "sslmode": {
+          "title": "SSL Mode",
+          "description": "The SSL mode to use for the connection. One of 'disable', 'allow', 'prefer', 'require', 'verify-ca', or 'verify-full'.",
+          "type": "string",
+          "enum": ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"],
+          "default": "prefer"
+        },
+        "sslcert": {
+          "title": "SSL Certificate",
+          "description": "Path to the SSL client certificate file (if required).",
+          "type": "string"
+        },
+        "connect_timeout": {
+            "title": "Connect Timeout",
+            "description": "The maximum time in seconds to wait for a connection to be established. 0 or less means no timeout.",
+            "type": "integer",
+            "default": 10
+        }
+      },
+      "required": ["host", "dbname", "user", "password"]
+    }
+  },
+  "required": ["connection"]
+}

@@ -22,3 +22,11 @@ class AbstractDestinationSystem(Configurable, ABC):
     @abstractmethod
     def deploy(self, source: str) -> OperationStatus:
         """Deploy the given source to the destination system."""
+
+    def init(self) -> None:
+        """Initialize the destination system before deployment."""
+        pass
+
+    def close(self, was_successful: bool) -> None:
+        """Close the destination system after deployment."""
+        pass
