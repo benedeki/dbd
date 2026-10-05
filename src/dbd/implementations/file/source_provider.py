@@ -15,7 +15,7 @@
 from pathlib import Path
 
 from dbd.abstract.abstract_source_provider import AbstractSourceProvider
-from dbd.core.config import Config
+from dbd.core.simple_config import SimpleConfig
 
 
 class SourceProvider(AbstractSourceProvider):
@@ -28,7 +28,7 @@ class SourceProvider(AbstractSourceProvider):
     def source_file_masks(self) -> list[str]:
         return self._source_file_masks
 
-    def __init__(self, config: Config):
+    def __init__(self, config: SimpleConfig):
         super().__init__(config)
         self._source_dir = Path(self.config.get_as_str("path"))
         if not self._source_dir.exists() or not self._source_dir.is_dir():

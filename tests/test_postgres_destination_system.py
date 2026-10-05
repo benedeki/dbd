@@ -16,14 +16,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from dbd.core.config import Config
 from dbd.core.operation_status import OpFailure, OpSuccess
+from dbd.core.simple_config import SimpleConfig
 from dbd.implementations.postgres.destination_system import DestinationSystem
 
 
 @pytest.fixture
-def config() -> Config:
-    return Config(
+def config() -> SimpleConfig:
+    return SimpleConfig(
         {
             "connection": {
                 "host": "localhost",
@@ -36,7 +36,7 @@ def config() -> Config:
     )
 
 
-def test_executes_source_using_configured_connection(config: Config):
+def test_executes_source_using_configured_connection(config: SimpleConfig):
     connection = MagicMock()
     cursor = connection.cursor.return_value.__enter__.return_value
 
@@ -69,7 +69,7 @@ def test_adds_ssl_certificate_when_configured():
         "password": "secret",
         "sslcert": "client.crt",
     }
-    config = Config({"connection": connection_config})
+    config = SimpleConfig({"connection": connection_config})
 
     with patch("psycopg.connect", return_value=connection) as connect:
         DestinationSystem(config).init()
@@ -77,7 +77,7 @@ def test_adds_ssl_certificate_when_configured():
     assert connect.call_args.kwargs["sslcert"] == "client.crt"
 
 
-def test_returns_failure_when_postgres_rejects_source(config: Config):
+def test_returns_failure_when_postgres_rejects_source(config: SimpleConfig):
     connection = MagicMock()
     cursor = connection.cursor.return_value.__enter__.return_value
 
@@ -96,7 +96,7 @@ def test_returns_failure_when_postgres_rejects_source(config: Config):
     connection.close.assert_called_once_with()
 
 
-def test_rejects_deploy_before_initializing_one_transaction(config: Config):
+def test_rejects_deploy_before_initializing_one_transaction(config: SimpleConfig):
     destination = DestinationSystem(config)
 
     result = destination.deploy("CREATE TABLE example (id integer);")
@@ -106,7 +106,7 @@ def test_rejects_deploy_before_initializing_one_transaction(config: Config):
 
 
 def test_returns_failure_for_individual_transaction_error():
-    config = Config(
+    config = SimpleConfig(
         {
             "connection": {
                 "host": "localhost",
@@ -130,7 +130,7 @@ def test_returns_failure_for_individual_transaction_error():
     assert result == OpFailure("syntax error")
 
 
-def test_executes_repeated_deploys_in_one_transaction(config: Config):
+def test_executes_repeated_deploys_in_one_transaction(config: SimpleConfig):
     connection = MagicMock()
     cursor = connection.cursor.return_value.__enter__.return_value
 
@@ -150,7 +150,7 @@ def test_executes_repeated_deploys_in_one_transaction(config: Config):
 
 
 def test_executes_each_deploy_in_its_own_transaction():
-    config = Config(
+    config = SimpleConfig(
         {
             "connection": {
                 "host": "localhost",

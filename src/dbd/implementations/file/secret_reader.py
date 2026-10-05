@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from dbd.abstract.abstract_secret_reader import AbstractSecretReader
-from dbd.core.config import Config
+from dbd.core.simple_config import SimpleConfig
 
 
 class SecretReader(AbstractSecretReader):
@@ -30,7 +30,7 @@ class SecretReader(AbstractSecretReader):
 
         return str(result)
 
-    def __init__(self, config: Config):
+    def __init__(self, config: SimpleConfig):
         super().__init__(config)
         file_name = self.config.get_as_str("file_name")
         file_type = self.config.get_as_str("type", "json")

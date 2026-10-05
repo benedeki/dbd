@@ -17,8 +17,8 @@ from typing import Any
 import psycopg
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
-from dbd.core.config import Config
 from dbd.core.operation_status import OperationStatus, OpFailure, OpSuccess
+from dbd.core.simple_config import SimpleConfig
 
 
 class DestinationSystem(AbstractDestinationSystem):
@@ -26,7 +26,7 @@ class DestinationSystem(AbstractDestinationSystem):
     def one_transaction(self) -> bool:
         return self._one_transaction
 
-    def __init__(self, config: Config):
+    def __init__(self, config: SimpleConfig):
         super().__init__(config)
         self._one_transaction = config.get_as_bool("one_transaction", True)
         connection_config = config.get_as_config("connection")
