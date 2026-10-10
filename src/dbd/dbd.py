@@ -70,7 +70,7 @@ def _load_classes(config: ExpandableConfig) -> tuple[
 
 def main():
     action, config_file, clis = _load_parameters()
-    config = ExpandableConfig.from_file(config_file)
+    config = ExpandableConfig(config_file, clis)
     record_keeper, source_provider, destination_system = _load_classes(config)
     driver = Driver(config, record_keeper, source_provider, destination_system)
     match action:
