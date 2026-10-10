@@ -24,10 +24,11 @@ def test_load_parameters_reads_action_and_config_path(tmp_path, monkeypatch):
     config_path.write_text('{"name": "example"}', encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["dbd", "install", str(config_path)])
 
-    action, config = _load_parameters()
+    action, config_file, cli_parameters = _load_parameters()
 
     assert action is Action.INSTALL
-    assert config._data == {"name": "example"}
+    assert config_file == str(config_path)
+    assert cli_parameters == {}
 
 
 @pytest.mark.parametrize("action", ["deploy", ""])

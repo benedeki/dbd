@@ -14,7 +14,7 @@
 
 import pytest
 
-from dbd.core.config import Config
+from dbd.core.simple_config import SimpleConfig
 from dbd.implementations.file.source_provider import SourceProvider
 
 
@@ -22,7 +22,7 @@ def test_init_raises_for_missing_source_directory(tmp_path):
     source_dir = tmp_path / "missing"
 
     with pytest.raises(NotADirectoryError, match="Source path is not an existing directory"):
-        SourceProvider(Config({"path": str(source_dir)}))
+        SourceProvider(SimpleConfig({"path": str(source_dir)}))
 
 
 def test_init_raises_when_source_path_is_file(tmp_path):
@@ -30,7 +30,7 @@ def test_init_raises_when_source_path_is_file(tmp_path):
     source_path.write_text("source", encoding="utf-8")
 
     with pytest.raises(NotADirectoryError, match="Source path is not an existing directory"):
-        SourceProvider(Config({"path": str(source_path)}))
+        SourceProvider(SimpleConfig({"path": str(source_path)}))
 
 
 def test_get_sources_list_returns_matching_files_with_direct_files_first(tmp_path):
@@ -44,7 +44,7 @@ def test_get_sources_list_returns_matching_files_with_direct_files_first(tmp_pat
     deeper_dir.mkdir()
     (deeper_dir / "a.sql").write_text("a", encoding="utf-8")
 
-    source_provider = SourceProvider(Config({"path": str(tmp_path), "file_masks": ["*.sql"]}))
+    source_provider = SourceProvider(SimpleConfig({"path": str(tmp_path), "file_masks": ["*.sql"]}))
 
     assert source_provider.get_sources_list() == [
         "a.sql",
@@ -59,6 +59,6 @@ def test_get_source_reads_file_relative_to_source_dir(tmp_path):
     nested_dir.mkdir()
     (nested_dir / "source.sql").write_text("CREATE TABLE example;", encoding="utf-8")
 
-    source_provider = SourceProvider(Config({"path": str(tmp_path), "file_masks": ["*.sql"]}))
+    source_provider = SourceProvider(SimpleConfig({"path": str(tmp_path), "file_masks": ["*.sql"]}))
 
     assert source_provider.get_source("nested/source.sql") == "CREATE TABLE example;"

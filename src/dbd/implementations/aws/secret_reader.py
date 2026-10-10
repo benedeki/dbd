@@ -18,7 +18,7 @@ from typing import Any
 import boto3
 
 from dbd.abstract.abstract_secret_reader import AbstractSecretReader
-from dbd.core.config import Config
+from dbd.core.simple_config import SimpleConfig
 
 
 class SecretReader(AbstractSecretReader):
@@ -26,9 +26,9 @@ class SecretReader(AbstractSecretReader):
     region_name: str
     client: Any
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: SimpleConfig) -> None:
         super().__init__(config)
-        self.region_name = config.get("region_name")
+        self.region_name = config.get_as_str("region_name")
         self.client = boto3.client("secretsmanager", region_name=self.region_name)
 
     def get_secret(self, secret_name: str) -> str | dict[str, Any] | list[Any] | None:

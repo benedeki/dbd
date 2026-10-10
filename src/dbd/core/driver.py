@@ -19,16 +19,16 @@ from typing import Any
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
 from dbd.abstract.abstract_source_provider import AbstractSourceProvider
-from dbd.core.config import Config
 from dbd.core.configurable import Configurable
 from dbd.core.operation_status import OpFailure, OpSuccess, OpWarning
+from dbd.core.simple_config import SimpleConfig
 
 
 class Driver(Configurable):
     """The main execution class."""
 
     def __init__(self,
-                 config: Config,
+                 config: SimpleConfig,
                  record_keeper: AbstractRecordKeeper,
                  source_provider: AbstractSourceProvider,
                  destination_system: AbstractDestinationSystem):

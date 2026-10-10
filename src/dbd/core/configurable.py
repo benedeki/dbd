@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dbd.core.config import Config
+from dbd.core.simple_config import SimpleConfig
 
 
 class Configurable:
     """Base class for configurable objects."""
 
-    def __init__(self, config: Config):
+    def __init__(self, config: SimpleConfig):
         self._config = config
 
     @property
-    def config(self) -> Config:
+    def config(self) -> SimpleConfig:
         return self._config
