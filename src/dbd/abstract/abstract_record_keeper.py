@@ -14,13 +14,13 @@
 
 from abc import ABC, abstractmethod
 
-from dbd.core.config import Config
 from dbd.core.configurable import Configurable
+from dbd.core.simple_config import SimpleConfig
 
 
 class AbstractRecordKeeper(Configurable, ABC):
     @abstractmethod
-    def start_session(self, full_config: Config):
+    def start_session(self, full_config: SimpleConfig):
         """Start a session with the record keeper."""
 
     @abstractmethod

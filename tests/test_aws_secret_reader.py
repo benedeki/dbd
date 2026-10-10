@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from dbd.core.config import Config
+from dbd.core.simple_config import SimpleConfig
 from dbd.implementations.aws.secret_reader import SecretReader
 
 
@@ -24,7 +24,7 @@ def test_creates_secrets_manager_client_with_configured_region():
     client = Mock()
 
     with patch("dbd.implementations.aws.secret_reader.boto3.client", return_value=client) as client_factory:
-        reader = SecretReader(Config({"region_name": "eu-west-1"}))
+        reader = SecretReader(SimpleConfig({"region_name": "eu-west-1"}))
 
     client_factory.assert_called_once_with("secretsmanager", region_name="eu-west-1")
     assert reader.region_name == "eu-west-1"
@@ -94,4 +94,4 @@ def test_returns_none_when_secret_is_not_found():
 
 def _create_reader(client: Mock) -> SecretReader:
     with patch("dbd.implementations.aws.secret_reader.boto3.client", return_value=client):
-        return SecretReader(Config({"region_name": "eu-west-1"}))
+        return SecretReader(SimpleConfig({"region_name": "eu-west-1"}))

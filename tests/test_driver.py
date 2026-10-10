@@ -16,14 +16,14 @@ from unittest.mock import Mock
 
 import pytest
 
-from dbd.core.config import Config
 from dbd.core.driver import Driver
 from dbd.core.operation_status import OpFailure, OpSuccess, OpWarning
+from dbd.core.simple_config import SimpleConfig
 
 
 def make_driver(record_keeper=None, source_provider=None, destination_system=None):
     return Driver(
-        Config({}),
+        SimpleConfig({}),
         record_keeper or Mock(),
         source_provider or Mock(),
         destination_system or Mock(),
