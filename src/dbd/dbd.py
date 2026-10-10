@@ -28,7 +28,7 @@ class Action(Enum):
 
 
 def _load_parameters() -> tuple[Action, str, dict[str, str]]:
-    if len(sys.argv) < 1:
+    if len(sys.argv) < 2:
         raise ValueError("No command-line arguments provided.")
     if sys.argv[1] in ('-h', '--help'):
         action = Action.HELP
@@ -47,6 +47,7 @@ def _load_parameters() -> tuple[Action, str, dict[str, str]]:
         parameter = parameters[index]
         if parameter.startswith("--"):
             key, separator, value = parameter.partition("=")
+            key = key.removeprefix("--")
             if not key:
                 raise ValueError(f"Invalid command-line parameter: '{parameter}'")
             if not separator:
@@ -54,7 +55,6 @@ def _load_parameters() -> tuple[Action, str, dict[str, str]]:
                     raise ValueError(f"Missing value for command-line parameter: '{parameter}'")
                 value = parameters[index + 1]
                 index += 1
-            key = key.removeprefix("--")
             clis[key] = value
             index += 1
         else:
