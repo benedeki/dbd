@@ -97,6 +97,5 @@ class Driver(Configurable):
                     case OpFailure(msg):
                         self._record_keeper.fail_session(source_name, source_hash, msg)
             else:
-                # TODO Just touch
-                pass
+                self._record_keeper.source_checked(source_name)
         return warnings

@@ -42,7 +42,7 @@ def test_map_source_variables_returns_source_when_no_mappings():
 
 def test_install_records_successful_deployment():
     record_keeper = Mock()
-    record_keeper.check_source_for_deploy.return_value = False
+    record_keeper.get_source_hash.return_value = None
     source_provider = Mock()
     source_provider.get_sources_list.return_value = ["users"]
     source_provider.get_source.return_value = "CREATE TABLE users;"
@@ -56,7 +56,7 @@ def test_install_records_successful_deployment():
     assert warnings == {}
     record_keeper.start_session.assert_called_once_with(driver.config)
     destination_system.deploy.assert_called_once_with("CREATE TABLE users;")
-    record_keeper.record.assert_called_once_with("users", source_hash)
+    record_keeper.record_deploy.assert_called_once_with("users", source_hash)
     record_keeper.end_session.assert_called_once_with({})
 
 
@@ -69,7 +69,7 @@ def test_install_records_successful_deployment():
 )
 def test_install_handles_deployment_statuses(status, expected_warnings):
     record_keeper = Mock()
-    record_keeper.check_source_for_deploy.return_value = False
+    record_keeper.get_source_hash.return_value = None
     source_provider = Mock()
     source_provider.get_sources_list.return_value = ["users"]
     source_provider.get_source.return_value = "CREATE TABLE users;"
@@ -81,7 +81,7 @@ def test_install_handles_deployment_statuses(status, expected_warnings):
 
     assert warnings == expected_warnings
     if isinstance(status, OpWarning):
-        record_keeper.record.assert_called_once()
+        record_keeper.record_deploy.assert_called_once()
     else:
         record_keeper.fail_session.assert_called_once_with(
             "users",
@@ -93,16 +93,17 @@ def test_install_handles_deployment_statuses(status, expected_warnings):
 
 def test_install_skips_sources_that_do_not_need_deployment():
     record_keeper = Mock()
-    record_keeper.check_source_for_deploy.return_value = True
     source_provider = Mock()
     source_provider.get_sources_list.return_value = ["users"]
     source_provider.get_source.return_value = "CREATE TABLE users;"
     destination_system = Mock()
     driver = make_driver(record_keeper, source_provider, destination_system)
+    record_keeper.get_source_hash.return_value = Driver._compute_hash("CREATE TABLE users;")
 
     assert driver.install() == {}
 
     destination_system.deploy.assert_not_called()
-    record_keeper.record.assert_not_called()
+    record_keeper.record_deploy.assert_not_called()
     record_keeper.fail_session.assert_not_called()
+    record_keeper.source_checked.assert_called_once_with("users")
     record_keeper.end_session.assert_called_once_with({})
