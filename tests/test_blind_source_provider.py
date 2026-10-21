@@ -14,8 +14,8 @@
 
 import pytest
 
-from dbd.implementations.blind.source_provider import SourceProvider
 from dbd.core.simple_config import SimpleConfig
+from dbd.implementations.blind.source_provider import SourceProvider
 
 
 def test_get_sources_list_is_empty():

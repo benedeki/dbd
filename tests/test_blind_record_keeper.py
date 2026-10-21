@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dbd.implementations.blind.record_keeper import RecordKeeper
 from dbd.core.simple_config import SimpleConfig
+from dbd.implementations.blind.record_keeper import RecordKeeper
 
 
 def test_record_keeper_methods_are_no_ops():

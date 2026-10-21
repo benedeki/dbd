@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dbd.implementations.blind import SecretReader
 from dbd.core.simple_config import SimpleConfig
+from dbd.implementations.blind.secret_reader import SecretReader
 
 
 def test_get_secret_returns_masked_value_for_any_name():
