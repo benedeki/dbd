@@ -32,9 +32,13 @@ class AbstractRecordKeeper(Configurable, ABC):
         raise RuntimeError(error_message)
 
     @abstractmethod
-    def check_source_for_deploy(self, source_name: str, source_hash: str) -> bool:
-        """Check the status of a given source."""
+    def get_source_hash(self, source_name: str) -> str | None:
+        """Get the hash of a given source."""
 
     @abstractmethod
-    def record(self, source_name: str, source_hash: str):
+    def record_deploy(self, source_name: str, source_hash: str):
         """Record the deployment event."""
+
+    @abstractmethod
+    def source_checked(self, source_name: str):
+        """Record that a source has been checked."""
