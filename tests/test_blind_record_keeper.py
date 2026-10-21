@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dbd.blind.record_keeper import RecordKeeper
+from dbd.implementations.blind.record_keeper import RecordKeeper
 from dbd.core.simple_config import SimpleConfig
 
 

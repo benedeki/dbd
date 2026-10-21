@@ -14,7 +14,7 @@
 
 import pytest
 
-from dbd.blind.source_provider import SourceProvider
+from dbd.implementations.blind.source_provider import SourceProvider
 from dbd.core.simple_config import SimpleConfig
 
 

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
 from dbd.core.simple_config import SimpleConfig
 

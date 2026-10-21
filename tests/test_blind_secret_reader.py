@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dbd.blind.secret_reader import SecretReader
+from dbd.implementations.blind import SecretReader
 from dbd.core.simple_config import SimpleConfig
 
 

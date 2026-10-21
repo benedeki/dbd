@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dbd.blind.destination_system import DestinationSystem
+from dbd.implementations.blind.destination_system import DestinationSystem
 from dbd.core.operation_status import OpSuccess
 from dbd.core.simple_config import SimpleConfig
 
