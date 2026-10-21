@@ -85,14 +85,18 @@ class Driver(Configurable):
         for source_name in self._source_provider.get_sources_list():
             source_content = self._map_source_variables(self._source_provider.get_source(source_name))
             source_hash = self._compute_hash(source_content)
-            if not self._record_keeper.check_source_for_deploy(source_name, source_hash):
+            recorded_hash = self._record_keeper.get_source_hash(source_name)
+            if recorded_hash != source_hash:
                 result = self._destination_system.deploy(source_content)
                 match result:
                     case OpSuccess():
-                        self._record_keeper.record(source_name, source_hash)
+                        self._record_keeper.record_deploy(source_name, source_hash)
                     case OpWarning(msg):
                         warnings[source_name] = msg
-                        self._record_keeper.record(source_name, source_hash)
+                        self._record_keeper.record_deploy(source_name, source_hash)
                     case OpFailure(msg):
                         self._record_keeper.fail_session(source_name, source_hash, msg)
+            else:
+                # TODO Just touch
+                pass
         return warnings

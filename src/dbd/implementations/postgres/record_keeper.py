@@ -1,0 +1,347 @@
+# Copyright 2026 David Benedeki, All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+from __future__ import annotations
+
+from datetime import datetime
+import uuid
+from dataclasses import dataclass
+
+import psycopg
+from psycopg import errors
+from psycopg.rows import class_row
+from psycopg.types.json import Jsonb
+
+from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
+from dbd.core.driver import Driver
+from dbd.core.simple_config import SimpleConfig
+from dbd.implementations.file import source_provider
+from dbd.implementations.postgres._postgres_connector import _PostgresConnector
+from dbd.implementations.file.source_provider import SourceProvider as FileSourceProvider
+from dbd.implementations.postgres.destination_system import DestinationSystem as PostgresDestinationSystem
+
+CURRENT_VERSION = 1
+
+class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
+    @property
+    def one_transaction(self) -> bool:
+        return self._one_transaction
+
+    @property
+    def session_started(self) -> bool:
+        return self._id_session is not None
+
+    _id_session: uuid.UUID | None = None
+    _version_checked: bool = False
+    _group_id: str | None = None
+    _e_connection: psycopg.Connection | None = None
+    _sources: dict[str, str] | None = None
+
+    _deployed_sources: dict[str, str] = {}
+    _checked_sources: list[str] = []
+
+    @property
+    def _connection(self) -> psycopg.Connection:
+        if self._e_connection is None:
+            connection = self._connect()
+            self._e_connection = connection
+            return connection
+        else:
+            return self._e_connection
+
+
+    def __init__(self, config: SimpleConfig):
+        connection_config = config.get_as_config("connection")
+        _one_transaction = config.get_as_bool("one_transaction", True)
+        AbstractRecordKeeper.__init__(self, config)
+        _PostgresConnector.__init__(self, connection_config, _one_transaction)
+        if "group_id" in config:
+            self._group_id = config.get_as_str("group_id")
+        else:
+            self._group_id = None
+
+
+    def start_session(self, full_config):
+        # Implement the logic to start a session with the record keeper
+        if self.session_started:
+            raise RuntimeError("Session has already been started.")
+
+        if not self._version_checked:
+            self._check_version()
+
+        if self.one_transaction:
+            self._id_session = _DBDNewSession.execute(self._connection, self._group_id).id_session
+        else:
+            with self._connect() as conn:
+                self._id_session = _DBDNewSession.execute(conn, self._group_id).id_session
+
+
+    def end_session(self, warnings: dict[str, str]):
+        # Implement the logic to end the session with the record keeper
+        if self._id_session is None:
+            raise RuntimeError("Session has not been started.")
+        if warnings:
+            logs = {"warnings": warnings}
+        else:
+            logs = {}
+        if self.one_transaction:
+            _DBDRecordSessionSources.execute(self._connection, self._group_id)
+            _DBDCloseSession.execute(self._connection, self._id_session, True, logs)
+            self._connection.close()
+            self._e_connection = None
+        else:
+            with self._connect() as conn:
+                _DBDCloseSession.execute(conn, self._id_session, True, logs)
+        self._id_session = None
+
+
+    def fail_session(self, source_name: str, source_hash: str, error_message: str):
+        if self._id_session is None:
+            raise RuntimeError("Session has not been started.")
+        logs = {
+            "error": {
+                "source_name": source_name,
+                "source_hash": source_hash,
+                "message": error_message
+            }
+        }
+        if self.one_transaction:
+            _DBDCloseSession.execute(self._connection, self._id_session, False, logs)
+            self._connection.close()
+            self._e_connection = None
+        else:
+            with self._connect() as conn:
+                _DBDCloseSession.execute(conn, self._id_session, False, logs)
+        self._id_session = None
+
+
+    def get_source_hash(self, source_name: str) -> str | None:
+        # Implement the logic to get the hash of a given source
+        if self._id_session is None:
+            raise RuntimeError("Session has not been started.")
+        if self._sources is None:
+            if self.one_transaction:
+                self._sources = _DBDGetSourcesWithHashes.execute(self._connection, self._group_id)
+            else:
+                with self._connect() as conn:
+                    self._sources = _DBDGetSourcesWithHashes.execute(conn, self._group_id)
+
+        return self._sources.get(source_name)
+
+
+    def record_deploy(self, source_name: str, source_hash: str):
+        # Implement the logic to record the deployment event
+        if self._id_session is None:
+            raise RuntimeError("Session has not been started.")
+
+        if self.one_transaction:
+            self._deployed_sources[source_name] = source_hash
+        else:
+            with self._connect() as conn:
+                _DBDRecordSource.execute(conn, self._id_session, source_name, source_hash)
+
+    def source_checked(self, source_name: str):
+        if self._id_session is None:
+            raise RuntimeError("Session has not been started.")
+
+        if self.one_transaction:
+            self._checked_sources.append(source_name)
+        else:
+            with self._connect() as conn:
+                _DBDSourceChecked.execute(conn, self._id_session, source_name)
+
+
+    def _check_version(self):
+        with self._connect() as conn:
+            try:
+                with self._connect() as conn:
+                    redeploy = _DBDVersion.execute(conn).version != CURRENT_VERSION
+            except errors.UndefinedFunction:
+                redeploy = True  # dbd schema/function not deployed yet
+
+        if redeploy:
+            self._redeploy()
+        self._version_checked = True
+
+    def _redeploy(self):
+        # TODO
+        config: SimpleConfig = self.config # TODO
+
+        record_keeper_config = SimpleConfig({})
+        record_keeper: AbstractRecordKeeper,
+        source_provider_config = SimpleConfig({}) # TODO
+        source_provider = FileSourceProvider(self)
+        destination_provider_config = SimpleConfig({}) # TODO
+        destination_system = PostgresDestinationSystem(destination_provider_config)
+        redeploy_driver = Driver(config, record_keeper, source_provider, destination_system)
+        redeploy_driver.install()
+
+
+@dataclass(frozen=True)
+class _DBDVersion:
+    version: int
+
+    @classmethod
+    def execute(cls, conn: psycopg.Connection) -> _DBDVersion:
+        with conn.cursor(row_factory=class_row(_DBDVersion)) as cur:
+            cur.execute("SELECT version FROM dbd.version()")
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.version returned no rows (should never happen).")
+            return result
+
+
+@dataclass(frozen=True)
+class _DBDNewSession:
+    id_session: uuid.UUID
+
+    @classmethod
+    def execute(cls, conn: psycopg.Connection, group_id: str | None) -> _DBDNewSession:
+        with conn.cursor(row_factory=class_row(_DBDNewSession)) as cur:
+            cur.execute("""
+                SELECT NS.id_session
+                FROM dbd.new_session(%(i_group_id)s)
+                """,
+                {"i_group_id": group_id}
+            )
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.new_session returned no rows (should never happen).")
+            return result
+
+
+@dataclass(frozen=True)
+class _DBDRecordSource:
+    first_deployment_key_session: uuid.UUID
+
+    @classmethod
+    def execute(cls, conn: psycopg.Connection,
+                key_session: uuid.UUID,
+                source_name: str,
+                source_hash: str) -> _DBDRecordSource:
+        with conn.cursor(row_factory=class_row(_DBDRecordSource)) as cur:
+            cur.execute(
+                """
+                SELECT RS.first_deployment_key_session
+                FROM dbd.record_source_deployed(%(i_source_name)s, %(i_key_session)s, %(i_source_hash)s)
+                """,
+                {"i_source_name": source_name, "i_key_session": key_session, "i_source_hash": source_hash}
+            )
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.record_source_deployed returned no rows (should never happen).")
+            return result
+
+
+@dataclass(frozen=True)
+class _DBDSourceChecked:
+    first_deployment_key_session: uuid.UUID
+
+    @classmethod
+    def execute(cls, conn: psycopg.Connection,
+                key_session: uuid.UUID,
+                source_name: str) -> _DBDSourceChecked:
+        with conn.cursor(row_factory=class_row(_DBDSourceChecked)) as cur:
+            cur.execute(
+                """
+                SELECT SC.first_deployment_key_session
+                FROM dbd.record_source_checked(%(i_source_name)s, %(i_key_session)s)
+                """,
+                {"i_source_name": source_name, "i_key_session": key_session}
+            )
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.record_source_checked returned no rows (should never happen).")
+            return result
+
+
+@dataclass(frozen=True)
+class _DBDGetSourcesWithHashes:
+    source_name: str
+    source_hash: str
+
+    @classmethod
+    def execute(cls, conn: psycopg.Connection,
+                key_session: uuid.UUID,
+                deployed_sources: dict[str, str],
+                checked_sources: list[str]
+                ) -> dict[str, str]:
+        deployed_sources_names = list(deployed_sources)
+        deployed_sources_hashes = list(deployed_sources.values())
+        with conn.cursor(row_factory=class_row(_DBDGetSourcesWithHashes)) as cur:
+            cur.execute(
+                """
+                SELECT * FROM dbd.record_session_sources(
+                    %(key_session)s,
+                    %(deployed_sources)s::text[],
+                    %(deployed_hashes)s::text[],
+                    %(checked_sources)s::text[]
+                              )
+                """,
+                {
+                    "key_session": key_session,
+                    "deployed_sources": deployed_sources_names,
+                    "deployed_hashes": deployed_sources_hashes,
+                    "checked_sources": checked_sources,
+                }
+            )
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.record_session_sources returned no rows (should never happen).")
+            return result
+
+
+@dataclass(frozen=True)
+class _DBDRecordSessionSources:
+    sources_deployed: int
+    sources_redeployed: int
+    sources_checked: int
+    checked_sources_not_found: int
+
+    @classmethod
+    def execute(cls, conn: psycopg.Connection, group_id: str | None) -> _DBDRecordSessionSources:
+        with conn.cursor(row_factory=class_row(_DBDRecordSessionSources)) as cur:
+            cur.execute(
+                "SELECT sources_deployed, sources_redeployed, sources_checked, checked_sources_not_found "
+                "FROM dbd.record_session_sources(%(i_group_id)s)",
+                {"i_group_id": group_id}
+            )
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.record_session_sources returned no rows (should never happen).")
+            return result
+
+
+class _DBDCloseSession:
+    group_id: str
+    session_start: datetime
+    session_end: datetime
+
+    @classmethod
+    def execute(cls, conn: psycopg.Connection,
+                key_session: uuid.UUID,
+                ended_with_success: bool,
+                session_log: dict) -> _DBDCloseSession:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT * FROM dbd.close_session(%(i_key_session)s, %(success)s, %(log)s)",
+                {
+                    "i_key_session": key_session,
+                    "success": ended_with_success,
+                    "log": Jsonb(session_log),
+                },
+            )
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.close_session returned no row (should never happen).")
+            return result
