@@ -34,7 +34,6 @@ class _PostgresConnector:
         self._sslmode = config.get_as_str("sslmode", "prefer")
         self._sslcert = config.get_as_str("sslcert", "")
         self._connect_timeout = config.get_as_int("connect_timeout", 10)
-        self._connection: psycopg.Connection | None = None
         self._transaction_failed = False
 
     def _connect(self) -> psycopg.Connection:

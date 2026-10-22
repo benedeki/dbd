@@ -14,9 +14,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
 
 import psycopg
 from psycopg import errors
@@ -26,9 +27,9 @@ from psycopg.types.json import Jsonb
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
 from dbd.core.driver import Driver
 from dbd.core.simple_config import SimpleConfig
-from dbd.implementations.file import source_provider
-from dbd.implementations.postgres._postgres_connector import _PostgresConnector
+from dbd.implementations.blind.record_keeper import RecordKeeper as BlindRecordKeeper
 from dbd.implementations.file.source_provider import SourceProvider as FileSourceProvider
+from dbd.implementations.postgres._postgres_connector import _PostgresConnector
 from dbd.implementations.postgres.destination_system import DestinationSystem as PostgresDestinationSystem
 
 CURRENT_VERSION = 1
@@ -66,10 +67,9 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
         _one_transaction = config.get_as_bool("one_transaction", True)
         AbstractRecordKeeper.__init__(self, config)
         _PostgresConnector.__init__(self, connection_config, _one_transaction)
-        if "group_id" in config:
-            self._group_id = config.get_as_str("group_id")
-        else:
-            self._group_id = None
+        self._group_id = config.get_as_str_optional("group_id")
+        self._auto_deploy = config.get_as_bool("auto_deploy", True)
+        self._source_code_location_override = config.get_as_str_optional("source_code_location_override")
 
 
     def start_session(self, full_config):
@@ -132,10 +132,17 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
             raise RuntimeError("Session has not been started.")
         if self._sources is None:
             if self.one_transaction:
-                self._sources = _DBDGetSourcesWithHashes.execute(self._connection, self._group_id)
+                self._sources = _DBDGetSourcesWithHashes.execute(
+                    self._connection,
+                    self._id_session,
+                    self._deployed_sources,
+                    self._checked_sources
+                )
             else:
                 with self._connect() as conn:
-                    self._sources = _DBDGetSourcesWithHashes.execute(conn, self._group_id)
+                    self._sources = _DBDGetSourcesWithHashes.execute(
+                        conn, self._id_session, self._deployed_sources, self._checked_sources
+                    )
 
         return self._sources.get(source_name)
 
@@ -171,20 +178,43 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
                 redeploy = True  # dbd schema/function not deployed yet
 
         if redeploy:
+            if not self._auto_deploy:
+                raise RuntimeError(
+                    f"DBD version mismatch or not deployed. Expected version {CURRENT_VERSION}. "
+                    "Please redeploy the DBD schema and functions."
+                )
             self._redeploy()
         self._version_checked = True
 
-    def _redeploy(self):
-        # TODO
-        config: SimpleConfig = self.config # TODO
+    def _redeploy(self) -> None:
+        driver_config: SimpleConfig =  SimpleConfig({})
 
         record_keeper_config = SimpleConfig({})
-        record_keeper: AbstractRecordKeeper,
-        source_provider_config = SimpleConfig({}) # TODO
-        source_provider = FileSourceProvider(self)
-        destination_provider_config = SimpleConfig({}) # TODO
+        record_keeper = BlindRecordKeeper(record_keeper_config)
+
+        if self._source_code_location_override:
+            source_path = self._source_code_location_override
+        else:
+            script_dir = Path(__file__).resolve().parent
+            dbd_dir = script_dir / "dbd"
+            source_path = str(dbd_dir)
+        source_provider_config = SimpleConfig(
+            {
+                "path": source_path,
+                "file_masks": ["*.sql", "*.ddl"],
+            }
+        )
+        source_provider = FileSourceProvider(source_provider_config)
+
+        destination_provider_config = SimpleConfig(
+            {
+                "one_transaction": True,
+                "connection": self.config.get_as_dict("connection"),
+            }
+        )
         destination_system = PostgresDestinationSystem(destination_provider_config)
-        redeploy_driver = Driver(config, record_keeper, source_provider, destination_system)
+
+        redeploy_driver = Driver(driver_config, record_keeper, source_provider, destination_system)
         redeploy_driver.install()
 
 
@@ -296,9 +326,10 @@ class _DBDGetSourcesWithHashes:
                     "checked_sources": checked_sources,
                 }
             )
-            result = cur.fetchone()
-            if result is None:
-                raise RuntimeError("dbd.record_session_sources returned no rows (should never happen).")
+            data = cur.fetchall()
+            result = {}
+            for row in data:
+                result[row.source_name] = row.source_hash
             return result
 
 
@@ -333,7 +364,7 @@ class _DBDCloseSession:
                 key_session: uuid.UUID,
                 ended_with_success: bool,
                 session_log: dict) -> _DBDCloseSession:
-        with conn.cursor() as cur:
+        with conn.cursor(row_factory=class_row(_DBDCloseSession)) as cur:
             cur.execute(
                 "SELECT * FROM dbd.close_session(%(i_key_session)s, %(success)s, %(log)s)",
                 {

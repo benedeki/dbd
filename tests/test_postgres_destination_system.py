@@ -25,12 +25,16 @@ from dbd.implementations.postgres.destination_system import DestinationSystem
 def config() -> SimpleConfig:
     return SimpleConfig(
         {
+            "one_transaction": True,
             "connection": {
                 "host": "localhost",
                 "port": 5432,
                 "dbname": "dbd",
                 "user": "dbd-user",
                 "password": "secret",
+                "sslmode": "prefer",
+                "sslcert": "",
+                "connect_timeout": 10,
             },
         }
     )
@@ -67,9 +71,11 @@ def test_adds_ssl_certificate_when_configured():
         "dbname": "dbd",
         "user": "dbd-user",
         "password": "secret",
+        "sslmode": "prefer",
+        "connect_timeout": 10,
         "sslcert": "client.crt",
     }
-    config = SimpleConfig({"connection": connection_config})
+    config = SimpleConfig({"connection": connection_config, "one_transaction": True})
 
     with patch("psycopg.connect", return_value=connection) as connect:
         DestinationSystem(config).init()
@@ -110,9 +116,13 @@ def test_returns_failure_for_individual_transaction_error():
         {
             "connection": {
                 "host": "localhost",
+                "port": 5432,
                 "dbname": "dbd",
                 "user": "dbd-user",
                 "password": "secret",
+                "sslmode": "prefer",
+                "sslcert": "",
+                "connect_timeout": 10,
             },
             "one_transaction": False,
         }
@@ -154,9 +164,13 @@ def test_executes_each_deploy_in_its_own_transaction():
         {
             "connection": {
                 "host": "localhost",
+                "port": 5432,
                 "dbname": "dbd",
                 "user": "dbd-user",
                 "password": "secret",
+                "sslmode": "prefer",
+                "sslcert": "",
+                "connect_timeout": 10,
             },
             "one_transaction": False,
         }

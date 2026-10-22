@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/benedeki/dbd/documentation/schemas/postgres/record_keeper.schema.json",
+  "title": "Postgres RecordKeeper Config",
+  "description": "Config node for a Postgres-backed RecordKeeper.\n\nContains connection details and transaction settings.",
+  "type": "object",
+  "properties": {
+    "one_transaction": {
+      "title": "One Transaction",
+      "description": "Whether to execute all operations within a single transaction.",
+      "type": "boolean",
+      "default": true
+    },
+    "connection": {
+      "title": "Connection",
+      "description": "Connection details for the Postgres database.",
+      "type": "object",
+      "properties": {
+        "host": {
+          "title": "Host",
+          "description": "The hostname of the Postgres server.",
+          "type": "string"
+        },
+        "port": {
+          "title": "Port",
+          "description": "The port number of the Postgres server.",
+          "type": "integer",
+          "default": 5432
+        },
+        "dbname": {
+          "title": "Database Name",
+          "description": "The name of the Postgres database.",
+          "type": "string"
+        },
+        "user": {
+          "title": "User",
+          "description": "The username for authenticating with the Postgres database.",
+          "type": "string"
+        },
+        "password": {
+          "title": "Password",
+          "description": "The password for authenticating with the Postgres database.",
+          "type": "string"
+        },
+        "sslmode": {
+          "title": "SSL Mode",
+          "description": "The SSL mode to use for the connection. One of 'disable', 'allow', 'prefer', 'require', 'verify-ca', or 'verify-full'.",
+          "type": "string",
+          "enum": ["disable", "allow", "prefer", "require", "verify-ca", "verify-full"],
+          "default": "prefer"
+        },
+        "sslcert": {
+          "title": "SSL Certificate",
+          "description": "Path to the SSL client certificate file (if required).",
+          "type": "string"
+        },
+        "connect_timeout": {
+            "title": "Connect Timeout",
+            "description": "The maximum time in seconds to wait for a connection to be established. 0 or less means no timeout.",
+            "type": "integer",
+            "default": 10
+        }
+      },
+      "required": ["host", "dbname", "user", "password"]
+    },
+    "group_id": {
+      "title": "Group ID",
+      "description": "Optional group identifier for the RecordKeeper. If provided, it can be used to logically group records in multitenant environments, e.g. 'UsersDb', 'Dev'.",
+      "type": "string"
+    },
+    "auto_deploy": {
+      "title": "Auto Deploy",
+      "description": "Whether to automatically deploy/upgrade the RecordKeeper schema if it does not exist. If false, the schema must be created manually before use.",
+      "type": "boolean",
+      "default": true
+    },
+    "source_code_location_override": {
+      "title": "Source Code Location Override",
+      "description": "Optional path to the database source code directory. If provided, it is used to grab the SQL scripts for deploying/upgrading the RecordKeeper schema. If not provided, the default location is used.",
+      "type": "string"
+    }
+  },
+  "required": ["connection"]
+}

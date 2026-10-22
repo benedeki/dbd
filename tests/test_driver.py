@@ -23,7 +23,7 @@ from dbd.core.simple_config import SimpleConfig
 
 def make_driver(record_keeper=None, source_provider=None, destination_system=None):
     return Driver(
-        SimpleConfig({}),
+        SimpleConfig({"mappings": {}}),
         record_keeper or Mock(),
         source_provider or Mock(),
         destination_system or Mock(),

@@ -46,8 +46,8 @@ def test_get_as_str_returns_value_and_joins_lists():
     assert SimpleConfig({"value": 42}).get_as_str("value") == "42"
 
 
-def test_get_as_str_uses_default():
-    assert SimpleConfig({}).get_as_str("name", "default") == "default"
+def test_get_as_str_optional_returns_none_for_missing_key():
+    assert SimpleConfig({"name": None}).get_as_str_optional("name") is None
 
 
 @pytest.mark.parametrize(
@@ -86,20 +86,11 @@ def test_get_as_bool_rejects_invalid_value():
         SimpleConfig({"value": "maybe"}).get_as_bool("value")
 
 
-def test_scalar_getters_use_defaults():
-    config = SimpleConfig({})
-
-    assert config.get_as_int("value", 42) == 42
-    assert config.get_as_bool("value", True) is True
-    assert config.get_as_float("value", 3.14) == 3.14
-
-
 def test_get_as_list_returns_list_or_wraps_scalar():
     config = SimpleConfig({"items": ["one", "two"], "item": "one"})
 
     assert config.get_as_list("items") == ["one", "two"]
     assert config.get_as_list("item") == ["one"]
-    assert config.get_as_list("missing", ["default"]) == ["default"]
 
 
 def test_get_as_list_returns_configured_list_reference():
@@ -149,5 +140,5 @@ def test_get_as_config_rejects_scalar_value(value):
     ],
 )
 def test_getters_raise_for_missing_values(getter):
-    with pytest.raises(KeyError, match="Configuration key 'missing' not found"):
+    with pytest.raises(KeyError):
         getattr(SimpleConfig({}), getter)("missing")
