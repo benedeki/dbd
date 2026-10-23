@@ -27,26 +27,38 @@ class SimpleConfig:
         return key in self._data
 
     def get(self, key: str) -> Any:
-        return self._data[key]
+        return self._data.get(key)
 
-    def get_as_str(self, key: str, default: str | None = None) -> str:
-        value = self._data.get(key, default)
+    def get_as_str_optional(self, key: str) -> str | None:
+        value = self.get(key)
         if value is None:
-            raise KeyError(f"Configuration key '{key}' not found.")
+            return None
         if isinstance(value, list):
             result = "\n".join(str(x) for x in value)
             return result
         return str(value)
 
-    def get_as_int(self, key: str, default: int | None = None) -> int:
-        value = self._data.get(key, default)
+    def get_as_str(self, key: str, default: str | None = None) -> str:
+        value = self.get_as_str_optional(key)
         if value is None:
+            if default is not None:
+                return default
+            raise KeyError(f"Configuration key '{key}' not found.")
+        return str(value)
+
+    def get_as_int(self, key: str, default: int | None = None) -> int:
+        value = self.get(key)
+        if value is None:
+            if default is not None:
+                return default
             raise KeyError(f"Configuration key '{key}' not found.")
         return int(value)
 
     def get_as_bool(self, key: str, default: bool | None = None) -> bool:
-        value = self._data.get(key, default)
+        value = self.get(key)
         if value is None:
+            if default is not None:
+                return default
             raise KeyError(f"Configuration key '{key}' not found.")
         if isinstance(value, bool):
             return value
@@ -58,22 +70,28 @@ class SimpleConfig:
         raise ValueError(f"Cannot interpret '{value}' as boolean")
 
     def get_as_float(self, key: str, default: float | None = None) -> float:
-        value = self._data.get(key, default)
+        value = self.get(key)
         if value is None:
+            if default is not None:
+                return default
             raise KeyError(f"Configuration key '{key}' not found.")
         return float(value)
 
     def get_as_list(self, key: str, default: list[Any] | None = None) -> list[Any]:
-        value = self._data.get(key, default)
+        value = self.get(key)
         if value is None:
+            if default is not None:
+                return default
             raise KeyError(f"Configuration key '{key}' not found.")
         if not isinstance(value, list):
             value = [value]
         return value
 
     def get_as_dict(self, key: str, default: dict[str, Any] | None = None) -> dict[str, Any]:
-        value = self._data.get(key, default)
+        value = self.get(key)
         if value is None:
+            if default is not None:
+                return default
             raise KeyError(f"Configuration key '{key}' not found.")
         if not isinstance(value, dict):
             raise ValueError(f"Configuration key '{key}' is not a dictionary.")

@@ -12,34 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Any
-
 import psycopg
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
 from dbd.core.operation_status import OperationStatus, OpFailure, OpSuccess
 from dbd.core.simple_config import SimpleConfig
+from dbd.implementations.postgres._postgres_connector import _PostgresConnector
 
 
-class DestinationSystem(AbstractDestinationSystem):
-    @property
-    def one_transaction(self) -> bool:
-        return self._one_transaction
+class DestinationSystem(AbstractDestinationSystem, _PostgresConnector):
+    _connection: psycopg.Connection | None = None
 
     def __init__(self, config: SimpleConfig):
-        super().__init__(config)
-        self._one_transaction = config.get_as_bool("one_transaction", True)
         connection_config = config.get_as_config("connection")
-        self._host = connection_config.get_as_str("host")
-        self._port = connection_config.get_as_int("port", 5432)
-        self._dbname = connection_config.get_as_str("dbname")
-        self._user = connection_config.get_as_str("user")
-        self._password = connection_config.get_as_str("password")
-        self._sslmode = connection_config.get_as_str("sslmode", "prefer")
-        self._sslcert = connection_config.get_as_str("sslcert", "")
-        self._connect_timeout = connection_config.get_as_int("connect_timeout", 10)
-        self._connection: psycopg.Connection | None = None
-        self._transaction_failed = False
+        _one_transaction = config.get_as_bool("one_transaction", True)
+        AbstractDestinationSystem.__init__(self, config)
+        _PostgresConnector.__init__(self, connection_config, _one_transaction)
 
     def init(self) -> None:
         if self.one_transaction:
@@ -78,18 +66,3 @@ class DestinationSystem(AbstractDestinationSystem):
                 return OpFailure(str(error))
 
             return OpSuccess()
-
-    def _connect(self) -> psycopg.Connection:
-        connection_parameters: dict[str, Any] = {
-            "host": self._host,
-            "port": self._port,
-            "dbname": self._dbname,
-            "user": self._user,
-            "password": self._password,
-            "sslmode": self._sslmode,
-        }
-        if self._sslcert:
-            connection_parameters["sslcert"] = self._sslcert
-        if self._connect_timeout > 0:
-            connection_parameters["connect_timeout"] = self._connect_timeout
-        return psycopg.connect(**connection_parameters)

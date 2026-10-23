@@ -13,22 +13,21 @@
 # limitations under the License.
 
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
-from dbd.core.simple_config import SimpleConfig
 
 
 class RecordKeeper(AbstractRecordKeeper):
-    def start_session(self, full_config: SimpleConfig):
+    def start_session(self) -> None:
         pass
 
-    def end_session(self, warnings: dict[str, str]):
+    def end_session(self, warnings: dict[str, str]) -> None:
         pass
 
     def get_source_hash(self, source_name: str) -> str | None:
         return None
 
-    def record_deploy(self, source_name: str, source_hash: str):
+    def record_deploy(self, source_name: str, source_hash: str) -> None:
         pass
 
-    def source_checked(self, source_name: str):
+    def source_checked(self, source_name: str) -> None:
         pass
 

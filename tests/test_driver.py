@@ -23,7 +23,7 @@ from dbd.core.simple_config import SimpleConfig
 
 def make_driver(record_keeper=None, source_provider=None, destination_system=None):
     return Driver(
-        SimpleConfig({}),
+        SimpleConfig({"mappings": {}}),
         record_keeper or Mock(),
         source_provider or Mock(),
         destination_system or Mock(),
@@ -54,7 +54,7 @@ def test_install_records_successful_deployment():
 
     source_hash = Driver._compute_hash("CREATE TABLE users;")
     assert warnings == {}
-    record_keeper.start_session.assert_called_once_with(driver.config)
+    record_keeper.start_session.assert_called_once_with()
     destination_system.deploy.assert_called_once_with("CREATE TABLE users;")
     record_keeper.record_deploy.assert_called_once_with("users", source_hash)
     record_keeper.end_session.assert_called_once_with({})

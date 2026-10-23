@@ -27,7 +27,7 @@ def test_reads_secrets_from_json_file(tmp_path):
         encoding="utf-8",
     )
 
-    reader = SecretReader(SimpleConfig({"file_name": str(secrets_path)}))
+    reader = SecretReader(SimpleConfig({"file_name": str(secrets_path), "type": "json"}))
 
     assert reader.get_secret("password") == "secret-value"
     assert reader.get_secret("port") == "5432"
@@ -47,7 +47,7 @@ def test_returns_dictionary_secrets_without_string_conversion(tmp_path):
 def test_returns_none_for_missing_secret(tmp_path):
     secrets_path = tmp_path / "secrets.json"
     secrets_path.write_text("{}", encoding="utf-8")
-    reader = SecretReader(SimpleConfig({"file_name": str(secrets_path)}))
+    reader = SecretReader(SimpleConfig({"file_name": str(secrets_path), "type": "json"}))
 
     assert reader.get_secret("missing") is None
 
@@ -65,4 +65,4 @@ def test_rejects_non_object_json(tmp_path):
     secrets_path.write_text('["not", "an", "object"]', encoding="utf-8")
 
     with pytest.raises(ValueError, match="must contain a JSON object"):
-        SecretReader(SimpleConfig({"file_name": str(secrets_path)}))
+        SecretReader(SimpleConfig({"file_name": str(secrets_path), "type": "json"}))

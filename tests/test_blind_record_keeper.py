@@ -19,7 +19,7 @@ from dbd.implementations.blind.record_keeper import RecordKeeper
 def test_record_keeper_methods_are_no_ops():
     record_keeper = RecordKeeper(SimpleConfig({}))
 
-    assert record_keeper.start_session(SimpleConfig({"environment": "test"})) is None
+    assert record_keeper.start_session() is None
     assert record_keeper.end_session({"warning": "ignored"}) is None
     assert record_keeper.get_source_hash("source.sql") is None
     assert record_keeper.record_deploy("source.sql", "hash") is None

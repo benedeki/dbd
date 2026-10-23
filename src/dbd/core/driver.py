@@ -40,7 +40,7 @@ class Driver(Configurable):
 
     def install(self) -> dict[str, str]:
         """Read and process the sources and apply them to the destination system."""
-        self._record_keeper.start_session(self.config)
+        self._record_keeper.start_session()
         success = False
         try:
             self._destination_system.init()
