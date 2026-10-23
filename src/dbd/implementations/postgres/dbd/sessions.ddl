@@ -16,7 +16,7 @@
 
 CREATE TABLE IF NOT EXISTS dbd.sessions (
     session_id                  UUID NOT NULL PRIMARY KEY,
-    group_id                    TEXT,
+    group_id                    TEXT NOT NULL,
     session_start               TIMESTAMP WITH TIME ZONE NOT NULL,
     session_end                 TIMESTAMP WITH TIME ZONE,
     ended_with_success          BOOLEAN,
