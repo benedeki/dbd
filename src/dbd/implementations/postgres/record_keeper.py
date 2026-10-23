@@ -37,9 +37,9 @@ CURRENT_VERSION = 1
 class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
     @property
     def session_started(self) -> bool:
-        return self._id_session is not None
+        return self._session_id is not None
 
-    _id_session: uuid.UUID | None = None
+    _session_id: uuid.UUID | None = None
     _version_checked: bool = False
     _group_id: str | None = None
     _e_connection: psycopg.Connection | None = None
@@ -77,15 +77,15 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
             self._check_version()
 
         if self.one_transaction:
-            self._id_session = _DBDNewSession.execute(self._connection, self._group_id).id_session
+            self._session_id = _DBDNewSession.execute(self._connection, self._group_id).session_id
         else:
             with self._connect() as conn:
-                self._id_session = _DBDNewSession.execute(conn, self._group_id).id_session
+                self._session_id = _DBDNewSession.execute(conn, self._group_id).session_id
 
 
     def end_session(self, warnings: dict[str, str]) -> None:
         # Implement the logic to end the session with the record keeper
-        if self._id_session is None:
+        if self._session_id is None:
             raise RuntimeError("Session has not been started.")
         if warnings:
             logs = {"warnings": warnings}
@@ -95,22 +95,22 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
             try:
                 _DBDRecordSessionSources.execute(
                     self._connection,
-                    self._id_session,
+                    self._session_id,
                     self._deployed_sources,
                     self._checked_sources
                 )
-                _DBDCloseSession.execute(self._connection, self._id_session, True, logs)
+                _DBDCloseSession.execute(self._connection, self._session_id, True, logs)
                 self._connection.commit()
             finally:
                 self._reset()
         else:
             with self._connect() as conn:
-                _DBDCloseSession.execute(conn, self._id_session, True, logs)
+                _DBDCloseSession.execute(conn, self._session_id, True, logs)
             self._reset()
 
 
     def fail_session(self, source_name: str, source_hash: str, error_message: str) -> None:
-        if self._id_session is None:
+        if self._session_id is None:
             raise RuntimeError("Session has not been started.")
         logs = {
             "error": {
@@ -121,23 +121,26 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
         }
         if self.one_transaction:
             try:
-                _DBDCloseSession.execute(self._connection, self._id_session, False, logs)
+                _DBDCloseSession.execute(self._connection, self._session_id, False, logs)
                 self._connection.commit()
             finally:
                 self._reset()
         else:
             with self._connect() as conn:
-                _DBDCloseSession.execute(conn, self._id_session, False, logs)
+                _DBDCloseSession.execute(conn, self._session_id, False, logs)
             self._reset()
+        super().fail_session(source_name, source_hash, error_message)
+
 
 
     def get_source_hash(self, source_name: str) -> str | None:
         # Implement the logic to get the hash of a given source
-        if self._id_session is None:
+        if self._session_id is None:
             raise RuntimeError("Session has not been started.")
         if self._sources is None:
             if self.one_transaction:
-                self._sources = _DBDGetSourcesWithHashes.execute(self._connection, self._group_id)
+                sources = _DBDGetSourcesWithHashes.execute(self._connection, self._group_id)
+                self._sources = sources
             else:
                 with self._connect() as conn:
                     sources = _DBDGetSourcesWithHashes.execute(conn, self._group_id)
@@ -149,24 +152,24 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
 
     def record_deploy(self, source_name: str, source_hash: str) -> None:
         # Implement the logic to record the deployment event
-        if self._id_session is None:
+        if self._session_id is None:
             raise RuntimeError("Session has not been started.")
 
         if self.one_transaction:
             self._deployed_sources[source_name] = source_hash
         else:
             with self._connect() as conn:
-                _DBDRecordSourceDeployed.execute(conn, self._id_session, source_name, source_hash)
+                _DBDRecordSourceDeployed.execute(conn, self._session_id, source_name, source_hash)
 
     def source_checked(self, source_name: str) -> None:
-        if self._id_session is None:
+        if self._session_id is None:
             raise RuntimeError("Session has not been started.")
 
         if self.one_transaction:
             self._checked_sources.append(source_name)
         else:
             with self._connect() as conn:
-                _DBDSourceChecked.execute(conn, self._id_session, source_name)
+                _DBDSourceChecked.execute(conn, self._session_id, source_name)
 
 
     def _check_version(self) -> None:
@@ -220,7 +223,7 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
         redeploy_driver.install()
 
     def _reset(self) -> None:
-        self._id_session = None
+        self._session_id = None
         self._sources = None
         self._deployed_sources = {}
         self._checked_sources = []
@@ -245,13 +248,13 @@ class _DBDVersion:
 
 @dataclass(frozen=True)
 class _DBDNewSession:
-    id_session: uuid.UUID
+    session_id: uuid.UUID
 
     @classmethod
     def execute(cls, conn: psycopg.Connection, group_id: str | None) -> _DBDNewSession:
         with conn.cursor(row_factory=class_row(_DBDNewSession)) as cur:
             cur.execute("""
-                SELECT NS.id_session
+                SELECT NS.session_id
                 FROM dbd.new_session(%(i_group_id)s) AS NS
                 """,
                 {"i_group_id": group_id}
@@ -340,7 +343,7 @@ class _DBDRecordSessionSources:
 
     @classmethod
     def execute(cls, conn: psycopg.Connection,
-                key_session: uuid.UUID,
+                session_id: uuid.UUID,
                 deployed_sources: dict[str, str],
                 checked_sources: list[str]
                 ) -> dict[str, str]:
@@ -349,25 +352,24 @@ class _DBDRecordSessionSources:
         with conn.cursor(row_factory=class_row(_DBDGetSourcesWithHashes)) as cur:
             cur.execute(
                 """
-                SELECT RSS.source_name, RSS.source_hash
+                SELECT RSS.sources_deployed, RSS.sources_redeployed, RSS.sources_checked, RSS.checked_sources_not_found
                 FROM dbd.record_session_sources(
-                    %(key_session)s,
+                    %(session_id)s,
                     %(deployed_sources)s::text[],
                     %(deployed_hashes)s::text[],
                     %(checked_sources)s::text[]
                               ) AS RSS
                 """,
                 {
-                    "key_session": key_session,
+                    "session_id": session_id,
                     "deployed_sources": deployed_sources_names,
                     "deployed_hashes": deployed_sources_hashes,
                     "checked_sources": checked_sources,
                 }
             )
-            data = cur.fetchall()
-            result = {}
-            for row in data:
-                result[row.source_name] = row.source_hash
+            result = cur.fetchone()
+            if result is None:
+                raise RuntimeError("dbd.record_session_sources returned no rows (should never happen).")
             return result
 
 
