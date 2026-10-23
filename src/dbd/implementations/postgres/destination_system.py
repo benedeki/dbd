@@ -24,7 +24,6 @@ class DestinationSystem(AbstractDestinationSystem, _PostgresConnector):
     _connection: psycopg.Connection | None = None
 
     def __init__(self, config: SimpleConfig):
-        super().__init__(config)
         connection_config = config.get_as_config("connection")
         _one_transaction = config.get_as_bool("one_transaction", True)
         AbstractDestinationSystem.__init__(self, config)

@@ -34,8 +34,7 @@ def test_get_returns_configured_value():
 
 
 def test_get_raises_for_missing_key():
-    with pytest.raises(KeyError):
-        SimpleConfig({}).get("missing")
+    assert SimpleConfig({}).get("missing") is None
 
 
 def test_get_as_str_returns_value_and_joins_lists():

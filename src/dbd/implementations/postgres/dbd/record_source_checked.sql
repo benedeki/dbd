@@ -14,7 +14,7 @@
  */
 
 CREATE OR REPLACE FUNCTION dbd.record_source_checked(
-    IN  i_key_session                   UUID,
+    IN  i_session_id                    UUID,
     IN  i_source_name                   TEXT,
     OUT first_deployment_key_session    UUID
 )RETURNS UUID AS $$
@@ -24,11 +24,12 @@ CREATE OR REPLACE FUNCTION dbd.record_source_checked(
 --      Records that a source has been checked.
 --
 -- Parameters:
---      i_key_session                   - The key of the session
+--      i_session_id                    - The ID of the session
 --      i_source_name                   - The name of the source
 --
 -- Returns:
---      first_deployment_key_session    - The key of the first deployment session of the source
+--      first_deployment_key_session    - The ID of the first deployment session of the source, or NULL if the source
+--                                        has never been deployed
 --
 -------------------------------------------------------------------------------
 DECLARE
@@ -37,29 +38,24 @@ BEGIN
 
     SELECT S.group_id
     FROM dbd.sessions S
-    WHERE S.session_key = i_key_session
+    WHERE S.session_id = i_session_id
     INTO _group_id;
 
     IF NOT found  THEN
-        RAISE EXCEPTION 'Session key % not found in dbd.sessions', i_key_session;
+        RAISE EXCEPTION 'Session key % not found in dbd.sessions', i_session_id;
     END IF;
 
-    UPDATE dbd.record_sources
+    UPDATE dbd.sources
     SET
-        source_hash = i_source_hash,
-        key_session_of_last_check = i_key_session,
+        key_session_of_last_check = i_session_id,
         last_check_at = clock_timestamp()
     WHERE source_name = i_source_name
         AND group_id = _group_id
     RETURNING key_session_of_first_deployment
     INTO first_deployment_key_session;
 
-    IF NOT found THEN
-        RAISE EXCEPTION 'Source name % not found in dbd.record_sources for group_id %', i_source_name, _group_id;
-    END IF;
-
     RETURN;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.record_source_checked(UUID, TEXT) OWNER TO dbd_owner;

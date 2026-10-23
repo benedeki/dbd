@@ -14,7 +14,7 @@
  */
 
 CREATE OR REPLACE FUNCTION dbd.record_session_sources(
-    IN  i_key_session                   UUID,
+    IN  i_session_id                    UUID,
     IN  i_deployed_sources              TEXT[],
     IN  i_deployed_hashes               TEXT[],
     IN  i_checked_sources               TEXT[],
@@ -26,10 +26,11 @@ CREATE OR REPLACE FUNCTION dbd.record_session_sources(
 -------------------------------------------------------------------------------
 --
 -- Function: dbd.record_session_sources(4)
---      Returns the first deployment key session of the source.
+--      Records the sources deployed and checked for a given session. It counts the number of sources deployed for the
+--      first time, redeployed, checked, and checked but not found.
 --
 -- Parameters:
---      i_key_session                   - The key of the session
+--      i_session_id                    - The ID of the session
 --      i_deployed_sources              - The array of deployed source names
 --      i_deployed_hashes               - The array of deployed source hashes
 --      i_checked_sources               - The array of checked source names
@@ -56,14 +57,14 @@ BEGIN
     LOOP
         SELECT FDKS.first_deployment_key_session
         FROM dbd.record_source_deployed(
-            i_key_session,
+            i_session_id,
             _rec.source_name,
             _rec.source_hash
         ) FDKS
         INTO _uuid;
 
-        IF _uuis == i_key_session THEN
-            sources__deployed := sources_deployed + 1;
+        IF _uuid = i_session_id THEN
+            sources_deployed := sources_deployed + 1;
         ELSE
             sources_redeployed := sources_redeployed + 1;
         END IF;
@@ -74,7 +75,7 @@ BEGIN
     LOOP
         SELECT FDKS.first_deployment_key_session
         FROM dbd.record_source_checked(
-            i_key_session,
+            i_session_id,
             _source_name
         ) FDKS
         INTO _uuid;
@@ -88,6 +89,6 @@ BEGIN
 
     RETURN;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
-ALTER FUNCTION dbd.record_session_sources(UUID, TEXT, TEXT) OWNER TO dbd_owner;
+ALTER FUNCTION dbd.record_session_sources(UUID, TEXT[], TEXT[], TEXT[]) OWNER TO dbd_owner;

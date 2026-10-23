@@ -15,22 +15,23 @@
 
 
 CREATE TABLE IF NOT EXISTS dbd.sessions (
-    id_session_id               UUID NOT NULL PRIMARY KEY
-        COMMENT 'Unique identifier for the session.',
+    session_id                  UUID NOT NULL PRIMARY KEY,
     group_id                    TEXT,
-        COMMENT 'Allows to identify the session by group it belongs to (e.g. "users db deployment").',
-    session_start               TIMESTAMP WITH TIME ZONE NOT NULL
-        COMMENT 'Timestamp when the session started.',
-    session_end                 TIMESTAMP WITH TIME ZONE
-        COMMENT 'Timestamp when the session ended.',
-    session_ended_as_success    BOOLEAN
-        COMMENT 'Indicates whether the session ended successfully.',
+    session_start               TIMESTAMP WITH TIME ZONE NOT NULL,
+    session_end                 TIMESTAMP WITH TIME ZONE,
+    ended_with_success          BOOLEAN,
     session_log                 JSONB
-        COMMENT 'Log of the session in JSONB format.',
 );
 
-ALTER TABLE SET OWNER dbd.sessions TO ROLE dbd_owner;
+ALTER TABLE dbd.sessions OWNER TO dbd_owner;
+
 COMMENT ON TABLE dbd.sessions IS 'Table to track sessions of deployments.';
+COMMENT ON COLUMN dbd.sessions.session_id IS 'Unique identifier for the session.';
+COMMENT ON COLUMN dbd.sessions.group_id IS 'Allows to identify the session by group it belongs to (e.g. "users db deployment").';
+COMMENT ON COLUMN dbd.sessions.session_start IS 'Timestamp when the session started.';
+COMMENT ON COLUMN dbd.sessions.session_end IS 'Timestamp when the session ended.';
+COMMENT ON COLUMN dbd.sessions.ended_with_success IS 'Indicates whether the session ended successfully.';
+COMMENT ON COLUMN dbd.sessions.session_log IS 'Log of the session in JSONB format.';
 
 CREATE INDEX IF NOT EXISTS idx_sessions_group_id
     ON dbd.sessions (group_id, session_start DESC);

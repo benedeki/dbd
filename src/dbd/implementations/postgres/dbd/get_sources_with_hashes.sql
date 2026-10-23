@@ -31,12 +31,15 @@ CREATE OR REPLACE FUNCTION dbd.get_sources_with_hashes(
 --      source_hash         - The hash of the source
 --
 -------------------------------------------------------------------------------
-SELECT
-    S.source_name,
-    S.source_hash
-FROM dbd.sources S
-WHERE S.group_id = i_group_id;
-$$ LANGUAGE sql VOLATILE SECURITY DEFINER;
+BEGIN
+    RETURN QUERY
+    SELECT
+        S.source_name,
+        S.source_hash
+    FROM dbd.sources S
+    WHERE S.group_id IS NOT DISTINCT FROM i_group_id;
+END;
+$$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
-ALTER FUNCTION dbd.get_sources_hashes() OWNER TO dbd_owner;
+ALTER FUNCTION dbd.get_sources_with_hashes(TEXT) OWNER TO dbd_owner;
 

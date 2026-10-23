@@ -14,7 +14,7 @@
  */
 
 CREATE OR REPLACE FUNCTION dbd.record_source_deployed(
-    IN  i_key_session                   UUID,
+    IN  i_session_id                    UUID,
     IN  i_source_name                   TEXT,
     IN  i_source_hash                   TEXT,
     OUT first_deployment_key_session    UUID
@@ -22,15 +22,16 @@ CREATE OR REPLACE FUNCTION dbd.record_source_deployed(
 -------------------------------------------------------------------------------
 --
 -- Function: dbd.record_source_deployed(3)
---      Returns the first deployment key session of the source.
+--      Records the deployment of a source in the dbd.sources table, updating the source_hash and session IDs for last
+--      deployment and last check. If the source does not exist, it inserts a new record with the provided information.
 --
 -- Parameters:
---      i_key_session                   - The key of the session
+--      i_session_id                    - The ID of the session
 --      i_source_name                   - The name of the source
 --      i_source_hash                   - The hash of the source
 --
 -- Returns:
---      first_deployment_key_session    - The key of the first deployment session of the source
+--      first_deployment_key_session    - The ID of the first deployment session of the source
 --
 -------------------------------------------------------------------------------
 DECLARE
@@ -47,11 +48,11 @@ BEGIN
         RAISE EXCEPTION 'Session key % not found in dbd.sessions', i_key_session;
     END IF;
 
-    UPDATE dbd.record_sources
+    UPDATE dbd.sources
     SET
         source_hash = i_source_hash,
-        key_session_of_last_deployment = i_key_session,
-        key_session_of_last_check = i_key_session,
+        key_session_of_last_deployment = i_session_id,
+        key_session_of_last_check = i_session_id,
         last_deployed_at = _record_timestamp,
         last_check_at = _record_timestamp
     WHERE source_name = i_source_name
@@ -60,7 +61,7 @@ BEGIN
     INTO first_deployment_key_session;
 
     IF NOT found THEN
-        INSERT INTO dbd.record_sources (
+        INSERT INTO dbd.sources (
             group_id,
             source_name,
             source_hash,
@@ -73,18 +74,18 @@ BEGIN
             _group_id,
             i_source_name,
             i_source_hash,
-            i_key_session,
-            i_key_session,
-            i_key_session,
+            i_session_id,
+            i_session_id,
+            i_session_id,
             _record_timestamp,
             _record_timestamp
         );
 
-       first_deployment_key_session := i_key_session;
+       first_deployment_key_session := i_session_id;
     END IF;
 
     RETURN;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.record_source_deployed(UUID, TEXT, TEXT) OWNER TO dbd_owner;

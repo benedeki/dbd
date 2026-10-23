@@ -15,19 +15,18 @@
 from abc import ABC, abstractmethod
 
 from dbd.core.configurable import Configurable
-from dbd.core.simple_config import SimpleConfig
 
 
 class AbstractRecordKeeper(Configurable, ABC):
     @abstractmethod
-    def start_session(self, full_config: SimpleConfig):
+    def start_session(self) -> None:
         """Start a session with the record keeper."""
 
     @abstractmethod
-    def end_session(self, warnings: dict[str, str]):
+    def end_session(self, warnings: dict[str, str]) -> None:
         """End the session with the record keeper."""
 
-    def fail_session(self, source_name: str, source_hash: str, error_message: str):
+    def fail_session(self, source_name: str, source_hash: str, error_message: str) -> None:
         """Fail the session with the record keeper."""
         raise RuntimeError(error_message)
 
@@ -36,9 +35,9 @@ class AbstractRecordKeeper(Configurable, ABC):
         """Get the hash of a given source."""
 
     @abstractmethod
-    def record_deploy(self, source_name: str, source_hash: str):
+    def record_deploy(self, source_name: str, source_hash: str) -> None:
         """Record the deployment event."""
 
     @abstractmethod
-    def source_checked(self, source_name: str):
+    def source_checked(self, source_name: str) -> None:
         """Record that a source has been checked."""

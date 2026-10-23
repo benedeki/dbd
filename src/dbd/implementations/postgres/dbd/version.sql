@@ -14,8 +14,7 @@
  */
 
 CREATE OR REPLACE FUNCTION dbd.version(
-    OUT version_number  INTEGER,
-    OUT dbd_user        TEXT
+    OUT version_number  INTEGER
 )RETURNS RECORD AS $$
 -------------------------------------------------------------------------------
 --
@@ -27,13 +26,11 @@ CREATE OR REPLACE FUNCTION dbd.version(
 --
 -- Returns:
 --      version_number      - The version number of the function
---      dbd_user            - The user who was granted access to the dbd functions
 --
 -------------------------------------------------------------------------------
 DECLARE
 BEGIN
     version_number := 1;
-    dbd_user := NULL; -- TODO
 
     RETURN;
 END;

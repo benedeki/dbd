@@ -15,7 +15,7 @@
 
 CREATE OR REPLACE FUNCTION dbd.new_session(
     IN  i_group_id        TEXT,
-    OUT id_session        UUID,
+    OUT session_id        UUID
 )RETURNS UUID AS $$
 -------------------------------------------------------------------------------
 --
@@ -26,27 +26,27 @@ CREATE OR REPLACE FUNCTION dbd.new_session(
 --      i_group_id        - The group ID for which to create a new session
 --
 -- Returns:
---      id_session        - The ID of the newly created session
+--      session_id        - The ID of the newly created session
 --
 -------------------------------------------------------------------------------
 DECLARE
-    _id_session UUID;
+    _session_id UUID;
 BEGIN
-    _id_session := uuidv7();
+    _session_id := gen_random_uuid();
 
     INSERT INTO dbd.sessions (
-        id_session,
+        session_id,
         group_id,
         session_start
     ) VALUES (
-        _id_session,
+        _session_id,
         i_group_id,
         clock_timestamp()
     );
 
-    id_session := _id_session;
+    session_id := _session_id;
     RETURN;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.new_session(TEXT) OWNER TO dbd_owner;

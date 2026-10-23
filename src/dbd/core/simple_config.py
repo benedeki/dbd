@@ -27,7 +27,7 @@ class SimpleConfig:
         return key in self._data
 
     def get(self, key: str) -> Any:
-        return self._data[key]
+        return self._data.get(key)
 
     def get_as_str_optional(self, key: str) -> str | None:
         value = self.get(key)

@@ -14,7 +14,7 @@
  */
 
 CREATE OR REPLACE FUNCTION dbd.close_session(
-    IN  i_key_session           UUID,
+    IN  i_session_id            UUID,
     IN  i_ended_with_success    BOOLEAN,
     IN  i_session_log           JSONB,
     OUT group_id                TEXT,
@@ -27,7 +27,7 @@ CREATE OR REPLACE FUNCTION dbd.close_session(
 --      Closes the specified deployment session and records whether it ended successfully.
 --
 -- Parameters:
---      i_key_session           - The ID of the session to close
+--      i_session_id            - The ID of the session to close
 --      i_ended_with_success    - Whether the session ended successfully
 --      i_session_log           - The log of the session in JSONB format
 --
@@ -44,20 +44,20 @@ BEGIN
     END IF;
 
     UPDATE dbd.sessions S
-    SET ended_at = clock_timestamp(),
+    SET session_end = clock_timestamp(),
         ended_with_success = i_ended_with_success,
         session_log = i_session_log
-    WHERE S.session_id = i_key_session AND
-          S.ended_at IS NULL
-    RETURNING S.group_id, S.started_at, S.ended_at
+    WHERE S.session_id = i_session_id AND
+          S.session_end IS NULL
+    RETURNING S.group_id, S.session_start, S.session_end
     INTO group_id, session_start, session_end;
 
     IF NOT found THEN
-        RAISE EXCEPTION 'No open session found with session_id: %', i_key_session;
+        RAISE EXCEPTION 'No open session found with session_id: %', i_session_id;
     END IF;
 
     RETURN;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
-ALTER FUNCTION dbd.close_session(UUID, BOOLEAN) OWNER TO dbd_owner;
+ALTER FUNCTION dbd.close_session(UUID, BOOLEAN, JSONB) OWNER TO dbd_owner;
