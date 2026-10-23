@@ -81,7 +81,7 @@ def test_start_and_end_session_use_one_transaction_connection(config: SimpleConf
         record_keeper.start_session()
         record_keeper.end_session({"users": "warning"})
 
-    new_session.assert_called_once_with(connection, None)
+    new_session.assert_called_once_with(connection, "")
     record_sources.assert_called_once_with(connection, session_id, {}, [])
     close_session.assert_called_once_with(
         connection,
@@ -123,7 +123,7 @@ def test_get_source_hash_loads_sources_once_and_returns_requested_hash(config: S
         assert record_keeper.get_source_hash("users.sql") == "hash"
         assert record_keeper.get_source_hash("missing.sql") is None
 
-    get_sources.assert_called_once_with(connection.__enter__(), None)
+    get_sources.assert_called_once_with(connection.__enter__(), "")
 
 
 def test_get_sources_with_hashes_maps_rows_to_source_hashes():

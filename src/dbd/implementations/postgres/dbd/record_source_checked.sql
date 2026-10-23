@@ -16,7 +16,7 @@
 CREATE OR REPLACE FUNCTION dbd.record_source_checked(
     IN  i_session_id                    UUID,
     IN  i_source_name                   TEXT,
-    OUT first_deployment_key_session    UUID
+    OUT first_deployment_session_id    UUID
 )RETURNS UUID AS $$
 -------------------------------------------------------------------------------
 --
@@ -28,7 +28,7 @@ CREATE OR REPLACE FUNCTION dbd.record_source_checked(
 --      i_source_name                   - The name of the source
 --
 -- Returns:
---      first_deployment_key_session    - The ID of the first deployment session of the source, or NULL if the source
+--      first_deployment_session_id     - The ID of the first deployment session of the source, or NULL if the source
 --                                        has never been deployed
 --
 -------------------------------------------------------------------------------
@@ -47,12 +47,12 @@ BEGIN
 
     UPDATE dbd.sources
     SET
-        key_session_of_last_check = i_session_id,
+        session_id_of_last_check = i_session_id,
         last_check_at = clock_timestamp()
     WHERE source_name = i_source_name
         AND group_id = _group_id
-    RETURNING key_session_of_first_deployment
-    INTO first_deployment_key_session;
+    RETURNING session_id_of_first_deployment
+    INTO first_deployment_session_id;
 
     RETURN;
 END;

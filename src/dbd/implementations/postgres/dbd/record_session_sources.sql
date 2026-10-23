@@ -55,7 +55,7 @@ BEGIN
     FOR _rec IN
         SELECT unnest(i_deployed_sources) AS source_name, unnest(i_deployed_hashes) AS source_hash
     LOOP
-        SELECT FDKS.first_deployment_key_session
+        SELECT FDKS.first_deployment_session_id
         FROM dbd.record_source_deployed(
             i_session_id,
             _rec.source_name,
@@ -73,7 +73,7 @@ BEGIN
     FOR _source_name IN
         SELECT unnest(i_checked_sources) AS source_name
     LOOP
-        SELECT FDKS.first_deployment_key_session
+        SELECT FDKS.first_deployment_session_id
         FROM dbd.record_source_checked(
             i_session_id,
             _source_name

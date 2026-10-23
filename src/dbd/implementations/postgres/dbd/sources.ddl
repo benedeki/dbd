@@ -15,15 +15,15 @@
 
 
 CREATE TABLE IF NOT EXISTS dbd.sources (
-    group_id                        TEXT,
+    group_id                        TEXT NOT NULL,
     source_name                     TEXT NOT NULL,
     source_hash                     TEXT NOT NULL,
-    key_session_of_first_deployment UUID NOT NULL,
-    key_session_of_last_deployment  UUID,
-    key_session_of_last_check       UUID,
+    session_id_of_first_deployment UUID NOT NULL,
+    session_id_of_last_deployment  UUID,
+    session_id_of_last_check       UUID,
     last_deployed_at                TIMESTAMP WITH TIME ZONE,
     last_check_at                   TIMESTAMP WITH TIME ZONE,
-    PRIMARY KEY (group_id, source_name) NULLS NOT DISTINCT
+    PRIMARY KEY (group_id, source_name)
 );
 
 ALTER TABLE dbd.sources OWNER TO dbd_owner;
@@ -32,9 +32,9 @@ COMMENT ON TABLE dbd.sources IS 'Table to track deployment of sources.';
 COMMENT ON COLUMN dbd.sources.group_id IS 'Group identifier for the source.';
 COMMENT ON COLUMN dbd.sources.source_name IS 'Name of the source.';
 COMMENT ON COLUMN dbd.sources.source_hash IS 'Hash of the source content.';
-COMMENT ON COLUMN dbd.sources.key_session_of_first_deployment IS 'Identifier of the session that first deployed this source.';
-COMMENT ON COLUMN dbd.sources.key_session_of_last_deployment IS 'Identifier of the session that last deployed this source.';
-COMMENT ON COLUMN dbd.sources.key_session_of_last_check IS 'Identifier of the session that last checked this source, no necessary deploy.';
+COMMENT ON COLUMN dbd.sources.session_id_of_first_deployment IS 'Identifier of the session that first deployed this source.';
+COMMENT ON COLUMN dbd.sources.session_id_of_last_deployment IS 'Identifier of the session that last deployed this source.';
+COMMENT ON COLUMN dbd.sources.session_id_of_last_check IS 'Identifier of the session that last checked this source, no necessary deploy.';
 COMMENT ON COLUMN dbd.sources.last_deployed_at IS 'Timestamp of the last deployment of this source.';
 COMMENT ON COLUMN dbd.sources.last_check_at IS 'Timestamp of the last time this source was checked, no necessary deploy.';
 

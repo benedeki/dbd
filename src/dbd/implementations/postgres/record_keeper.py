@@ -41,12 +41,12 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
 
     _session_id: uuid.UUID | None = None
     _version_checked: bool = False
-    _group_id: str | None = None
+    _group_id: str
     _e_connection: psycopg.Connection | None = None
     _sources: dict[str, str] | None = None
 
-    _deployed_sources: dict[str, str] = {}
-    _checked_sources: list[str] = []
+    _deployed_sources: dict[str, str]
+    _checked_sources: list[str]
 
     @property
     def _connection(self) -> psycopg.Connection:
@@ -63,9 +63,10 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
         _one_transaction = config.get_as_bool("one_transaction", True)
         AbstractRecordKeeper.__init__(self, config)
         _PostgresConnector.__init__(self, connection_config, _one_transaction)
-        self._group_id = config.get_as_str_optional("group_id")
+        self._group_id = config.get_as_str("group_id", "")
         self._auto_deploy = config.get_as_bool("auto_deploy", True)
         self._source_code_location_override = config.get_as_str_optional("source_code_location_override")
+        self._reset()
 
 
     def start_session(self) -> None:
@@ -251,7 +252,7 @@ class _DBDNewSession:
     session_id: uuid.UUID
 
     @classmethod
-    def execute(cls, conn: psycopg.Connection, group_id: str | None) -> _DBDNewSession:
+    def execute(cls, conn: psycopg.Connection, group_id: str) -> _DBDNewSession:
         with conn.cursor(row_factory=class_row(_DBDNewSession)) as cur:
             cur.execute("""
                 SELECT NS.session_id
@@ -267,7 +268,7 @@ class _DBDNewSession:
 
 @dataclass(frozen=True)
 class _DBDRecordSourceDeployed:
-    first_deployment_key_session: uuid.UUID
+    first_deployment_session_id: uuid.UUID
 
     @classmethod
     def execute(cls, conn: psycopg.Connection,
@@ -277,7 +278,7 @@ class _DBDRecordSourceDeployed:
         with conn.cursor(row_factory=class_row(_DBDRecordSourceDeployed)) as cur:
             cur.execute(
                 """
-                SELECT RS.first_deployment_key_session
+                SELECT RS.first_deployment_session_id
                 FROM dbd.record_source_deployed(%(session_id)s, %(source_name)s, %(source_hash)s) AS RS
                 """,
                 {"session_id": session_id, "source_name": source_name, "source_hash": source_hash}
@@ -290,7 +291,7 @@ class _DBDRecordSourceDeployed:
 
 @dataclass(frozen=True)
 class _DBDSourceChecked:
-    first_deployment_key_session: uuid.UUID
+    first_deployment_session_id: uuid.UUID
 
     @classmethod
     def execute(cls, conn: psycopg.Connection,
@@ -299,7 +300,7 @@ class _DBDSourceChecked:
         with conn.cursor(row_factory=class_row(_DBDSourceChecked)) as cur:
             cur.execute(
                 """
-                SELECT SC.first_deployment_key_session
+                SELECT SC.first_deployment_session_id
                 FROM dbd.record_source_checked(%(session_id)s, %(source_name)s) AS SC
                 """,
                 {"session_id": session_id, "source_name": source_name}
@@ -316,7 +317,7 @@ class _DBDGetSourcesWithHashes:
     source_hash: str
 
     @classmethod
-    def execute(cls, conn: psycopg.Connection, group_id: str | None) -> dict[str, str]:
+    def execute(cls, conn: psycopg.Connection, group_id: str) -> dict[str, str]:
         with conn.cursor(row_factory=class_row(_DBDGetSourcesWithHashes)) as cur:
             cur.execute(
                 """
@@ -381,14 +382,17 @@ class _DBDCloseSession:
 
     @classmethod
     def execute(cls, conn: psycopg.Connection,
-                key_session: uuid.UUID,
+                session_id: uuid.UUID,
                 ended_with_success: bool,
                 session_log: dict) -> _DBDCloseSession:
         with conn.cursor(row_factory=class_row(_DBDCloseSession)) as cur:
             cur.execute(
-                "SELECT * FROM dbd.close_session(%(key_session)s, %(success)s, %(log)s)",
+                """
+                SELECT CS.group_id, CS.session_start, CS.session_end
+                FROM dbd.close_session(%(session_id)s, %(success)s, %(log)s) CS
+                """,
                 {
-                    "key_session": key_session,
+                    "session_id": session_id,
                     "success": ended_with_success,
                     "log": Jsonb(session_log),
                 },

@@ -17,7 +17,7 @@ CREATE OR REPLACE FUNCTION dbd.record_source_deployed(
     IN  i_session_id                    UUID,
     IN  i_source_name                   TEXT,
     IN  i_source_hash                   TEXT,
-    OUT first_deployment_key_session    UUID
+    OUT first_deployment_session_id    UUID
 )RETURNS UUID AS $$
 -------------------------------------------------------------------------------
 --
@@ -31,7 +31,7 @@ CREATE OR REPLACE FUNCTION dbd.record_source_deployed(
 --      i_source_hash                   - The hash of the source
 --
 -- Returns:
---      first_deployment_key_session    - The ID of the first deployment session of the source
+--      first_deployment_session_id    - The ID of the first deployment session of the source
 --
 -------------------------------------------------------------------------------
 DECLARE
@@ -51,23 +51,23 @@ BEGIN
     UPDATE dbd.sources
     SET
         source_hash = i_source_hash,
-        key_session_of_last_deployment = i_session_id,
-        key_session_of_last_check = i_session_id,
+        session_id_of_last_deployment = i_session_id,
+        session_id_of_last_check = i_session_id,
         last_deployed_at = _record_timestamp,
         last_check_at = _record_timestamp
     WHERE source_name = i_source_name
         AND group_id = _group_id
-    RETURNING key_session_of_first_deployment
-    INTO first_deployment_key_session;
+    RETURNING session_id_of_first_deployment
+    INTO first_deployment_session_id;
 
     IF NOT found THEN
         INSERT INTO dbd.sources (
             group_id,
             source_name,
             source_hash,
-            key_session_of_first_deployment,
-            key_session_of_last_deployment,
-            key_session_of_last_check,
+            session_id_of_first_deployment,
+            session_id_of_last_deployment,
+            session_id_of_last_check,
             last_deployed_at,
             last_check_at
         ) VALUES (
@@ -81,7 +81,7 @@ BEGIN
             _record_timestamp
         );
 
-       first_deployment_key_session := i_session_id;
+       first_deployment_session_id := i_session_id;
     END IF;
 
     RETURN;
