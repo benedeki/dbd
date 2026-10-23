@@ -346,10 +346,10 @@ class _DBDRecordSessionSources:
                 session_id: uuid.UUID,
                 deployed_sources: dict[str, str],
                 checked_sources: list[str]
-                ) -> dict[str, str]:
+                ) -> _DBDRecordSessionSources:
         deployed_sources_names = list(deployed_sources)
         deployed_sources_hashes = list(deployed_sources.values())
-        with conn.cursor(row_factory=class_row(_DBDGetSourcesWithHashes)) as cur:
+        with conn.cursor(row_factory=class_row(_DBDRecordSessionSources)) as cur:
             cur.execute(
                 """
                 SELECT RSS.sources_deployed, RSS.sources_redeployed, RSS.sources_checked, RSS.checked_sources_not_found

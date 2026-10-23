@@ -68,7 +68,7 @@ def test_start_and_end_session_use_one_transaction_connection(config: SimpleConf
         patch.object(
             postgres_record_keeper._DBDNewSession,
             "execute",
-            return_value=SimpleNamespace(id_session=session_id),
+            return_value=SimpleNamespace(session_id=session_id),
         ) as new_session,
         patch.object(
             postgres_record_keeper._DBDRecordSessionSources,
@@ -95,7 +95,7 @@ def test_start_and_end_session_use_one_transaction_connection(config: SimpleConf
 
 def test_record_and_checked_sources_are_buffered_in_one_transaction(config: SimpleConfig):
     record_keeper = RecordKeeper(config)
-    record_keeper._id_session = uuid4()
+    record_keeper._session_id = uuid4()
 
     record_keeper.record_deploy("users.sql", "hash")
     record_keeper.source_checked("views.sql")
@@ -107,7 +107,7 @@ def test_record_and_checked_sources_are_buffered_in_one_transaction(config: Simp
 def test_get_source_hash_loads_sources_once_and_returns_requested_hash(config: SimpleConfig):
     config = SimpleConfig({**config._data, "one_transaction": False})
     record_keeper = RecordKeeper(config)
-    record_keeper._id_session = uuid4()
+    record_keeper._session_id = uuid4()
     connection = MagicMock()
     source_hashes = {"users.sql": "hash"}
 
@@ -161,38 +161,20 @@ def test_session_methods_require_an_active_session(config: SimpleConfig):
 
 def test_start_session_rejects_an_existing_session(config: SimpleConfig):
     record_keeper = RecordKeeper(config)
-    record_keeper._id_session = uuid4()
+    record_keeper._session_id = uuid4()
 
     with pytest.raises(RuntimeError, match="Session has already been started"):
         record_keeper.start_session()
 
 
-def test_fail_session_closes_one_transaction_with_error_log(config: SimpleConfig):
+def test_fail_session_raises_deployment_error(config: SimpleConfig):
     record_keeper = RecordKeeper(config)
     session_id = uuid4()
-    record_keeper._id_session = session_id
-    connection = MagicMock()
-
-    with (
-        patch.object(record_keeper, "_connect", return_value=connection),
-        patch.object(postgres_record_keeper._DBDCloseSession, "execute") as close_session,
-    ):
-        record_keeper.fail_session("users.sql", "hash", "deployment failed")
-
-    close_session.assert_called_once_with(
-        connection,
-        session_id,
-        False,
-        {
-            "error": {
-                "source_name": "users.sql",
-                "source_hash": "hash",
-                "message": "deployment failed",
-            }
-        },
-    )
-    connection.close.assert_called_once_with()
-    assert not record_keeper.session_started
+    record_keeper._session_id = session_id
+    record_keeper._e_connection = MagicMock()
+    with patch.object(postgres_record_keeper._DBDCloseSession, "execute"):
+        with pytest.raises(RuntimeError, match="deployment failed"):
+            record_keeper.fail_session("users.sql", "hash", "deployment failed")
 
 
 def test_individual_transaction_session_operations_use_new_connections(config: SimpleConfig):
@@ -209,7 +191,7 @@ def test_individual_transaction_session_operations_use_new_connections(config: S
         patch.object(
             postgres_record_keeper._DBDNewSession,
             "execute",
-            return_value=SimpleNamespace(id_session=session_id),
+            return_value=SimpleNamespace(session_id=session_id),
         ),
         patch.object(
             postgres_record_keeper._DBDGetSourcesWithHashes,
@@ -226,8 +208,9 @@ def test_individual_transaction_session_operations_use_new_connections(config: S
         assert record_keeper.get_source_hash("users.sql") == "hash"
         record_keeper.end_session({})
 
-        record_keeper._id_session = session_id
-        record_keeper.fail_session("users.sql", "hash", "deployment failed")
+        record_keeper._session_id = session_id
+        with pytest.raises(RuntimeError, match="deployment failed"):
+            record_keeper.fail_session("users.sql", "hash", "deployment failed")
 
     assert connect.call_count == 6
     record_source.assert_called_once_with(connection, session_id, "users.sql", "hash")
@@ -346,10 +329,13 @@ def test_database_helpers_return_rows_for_all_result_types():
     cursor.fetchone.side_effect = [
         SimpleNamespace(first_deployment_key_session=session_id),
         SimpleNamespace(first_deployment_key_session=session_id),
+        SimpleNamespace(
+            sources_deployed=1,
+            sources_redeployed=0,
+            sources_checked=1,
+            checked_sources_not_found=0,
+        ),
         SimpleNamespace(group_id="group", session_start=None, session_end=None),
-    ]
-    cursor.fetchall.return_value = [
-        SimpleNamespace(source_name="users.sql", source_hash="hash"),
     ]
 
     record_source = postgres_record_keeper._DBDRecordSourceDeployed.execute(
@@ -367,7 +353,7 @@ def test_database_helpers_return_rows_for_all_result_types():
 
     assert record_source.first_deployment_key_session == session_id
     assert source_checked.first_deployment_key_session == session_id
-    assert session_sources == {"users.sql": "hash"}
+    assert session_sources.sources_deployed == 1
     assert closed_session.group_id == "group"
 
 
@@ -380,7 +366,7 @@ def test_database_helpers_return_rows_for_all_result_types():
         ),
         (
             postgres_record_keeper._DBDNewSession,
-            SimpleNamespace(id_session=uuid4()),
+            SimpleNamespace(session_id=uuid4()),
         ),
     ],
 )
@@ -394,7 +380,7 @@ def test_database_helpers_return_rows(helper, row):
         assert result.version_number == row.version_number
     else:
         result = helper.execute(connection, None)
-        assert result.id_session == row.id_session
+        assert result.session_id == row.session_id
 
     cursor.execute.assert_called_once()
 
