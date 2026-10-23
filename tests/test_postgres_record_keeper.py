@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -274,7 +275,8 @@ def test_check_version_redeploys_when_function_is_missing(config: SimpleConfig):
 
 
 def test_redeploy_builds_driver_from_override_path(config: SimpleConfig):
-    config = SimpleConfig({**config._data, "source_code_location_override": "C:\\dbd-sources"})
+    override_path = Path("dbd-sources").resolve()
+    config = SimpleConfig({**config._data, "source_code_location_override": str(override_path)})
     record_keeper = RecordKeeper(config)
     blind_record_keeper = MagicMock()
     source_provider = MagicMock()
@@ -300,7 +302,7 @@ def test_redeploy_builds_driver_from_override_path(config: SimpleConfig):
         destination_system,
     )
     source_provider_config = source_provider_type.call_args.args[0]
-    assert source_provider_config.get_as_str("path") == "C:\\dbd-sources"
+    assert Path(source_provider_config.get_as_str("path")).resolve() == override_path
     driver.install.assert_called_once_with()
 
 
@@ -318,7 +320,7 @@ def test_redeploy_uses_bundled_database_scripts_by_default(config: SimpleConfig)
         record_keeper._redeploy()
 
     source_path = source_type.call_args.args[0].get_as_str("path")
-    assert source_path.endswith("dbd")
+    assert Path(source_path).name == "dbd"
 
 
 def test_database_helpers_return_rows_for_all_result_types():
