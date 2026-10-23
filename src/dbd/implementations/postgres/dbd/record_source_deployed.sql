@@ -41,11 +41,11 @@ BEGIN
 
     SELECT S.group_id
     FROM dbd.sessions S
-    WHERE S.session_key = i_key_session
+    WHERE S.session_id = i_session_id
     INTO _group_id;
 
     IF NOT found  THEN
-        RAISE EXCEPTION 'Session key % not found in dbd.sessions', i_key_session;
+        RAISE EXCEPTION 'Session ID % not found in dbd.sessions', i_session_id;
     END IF;
 
     UPDATE dbd.sources

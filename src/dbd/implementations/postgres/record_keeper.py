@@ -271,16 +271,16 @@ class _DBDRecordSourceDeployed:
 
     @classmethod
     def execute(cls, conn: psycopg.Connection,
-                key_session: uuid.UUID,
+                session_id: uuid.UUID,
                 source_name: str,
                 source_hash: str) -> _DBDRecordSourceDeployed:
         with conn.cursor(row_factory=class_row(_DBDRecordSourceDeployed)) as cur:
             cur.execute(
                 """
                 SELECT RS.first_deployment_key_session
-                FROM dbd.record_source_deployed(%(i_key_session)s, %(i_source_name)s, %(i_source_hash)s) AS RS
+                FROM dbd.record_source_deployed(%(session_id)s, %(source_name)s, %(source_hash)s) AS RS
                 """,
-                {"i_key_session": key_session, "i_source_name": source_name, "i_source_hash": source_hash}
+                {"session_id": session_id, "source_name": source_name, "source_hash": source_hash}
             )
             result = cur.fetchone()
             if result is None:
@@ -294,15 +294,15 @@ class _DBDSourceChecked:
 
     @classmethod
     def execute(cls, conn: psycopg.Connection,
-                key_session: uuid.UUID,
+                session_id: uuid.UUID,
                 source_name: str) -> _DBDSourceChecked:
         with conn.cursor(row_factory=class_row(_DBDSourceChecked)) as cur:
             cur.execute(
                 """
                 SELECT SC.first_deployment_key_session
-                FROM dbd.record_source_checked(%(i_key_session)s, %(i_source_name)s) AS SC
+                FROM dbd.record_source_checked(%(session_id)s, %(source_name)s) AS SC
                 """,
-                {"i_key_session": key_session, "i_source_name": source_name}
+                {"session_id": session_id, "source_name": source_name}
             )
             result = cur.fetchone()
             if result is None:
