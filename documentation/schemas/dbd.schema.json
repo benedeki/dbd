@@ -8,7 +8,8 @@
     "driver": {
       "title": "Driver",
       "description": "Configuration for driver of the dbd application.",
-      "type": "object"
+      "type": "object",
+      "$ref": "./driver.schema.json"
     },
     "secret_reader": {
       "title": "Secret Reader",

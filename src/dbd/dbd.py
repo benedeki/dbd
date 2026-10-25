@@ -88,6 +88,7 @@ def _load_classes(config: ExpandableConfig) -> tuple[
         f"dbd.implementations.{secret_reader_type}.{secret_reader_source_file}"
     )
     secret_reader_class = getattr(secret_reader_module, secret_reader_class_name)
+    sub_config = sub_config.get_as_config("config")
     config.expand(secret_reader_class(sub_config))
 
     sub_config = config.get_as_config("record_keeper", {})
@@ -98,6 +99,7 @@ def _load_classes(config: ExpandableConfig) -> tuple[
         f"dbd.implementations.{record_keeper_type}.{record_keeper_source_file}"
     )
     record_keeper_class = getattr(record_keeper_module, record_keeper_class_name)
+    sub_config = sub_config.get_as_config("config")
     record_keeper = record_keeper_class(sub_config)
 
     sub_config = config.get_as_config("source_provider", {})
@@ -108,6 +110,7 @@ def _load_classes(config: ExpandableConfig) -> tuple[
         f"dbd.implementations.{source_provider_type}.{source_provider_source_file}"
     )
     source_provider_class = getattr(source_provider_module, source_provider_class_name)
+    sub_config = sub_config.get_as_config("config")
     source_provider = source_provider_class(sub_config)
 
     sub_config = config.get_as_config("destination_system", {})
@@ -118,6 +121,7 @@ def _load_classes(config: ExpandableConfig) -> tuple[
         f"dbd.implementations.{destination_system_type}.{destination_system_source_file}"
     )
     destination_system_class = getattr(destination_system_module, destination_system_class_name)
+    sub_config = sub_config.get_as_config("config")
     destination_system = destination_system_class(sub_config)
 
     return record_keeper, source_provider, destination_system
