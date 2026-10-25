@@ -87,15 +87,15 @@
         },
         "class_override": {
           "title": "Class Override",
-          "description": "Optional override for the secret reader class name (default is 'SecretReader').",
+          "description": "Optional override for the source provider class name (default is 'SourceProvider').",
           "type": "string",
-          "default": "SecretReader"
+          "default": "SourceProvider"
         },
         "source_file_override": {
           "title": "Source File Override",
-          "description": "Optional override for the source file containing the `SecretReader` class implementation.",
+          "description": "Optional override for the source file containing the `SourceProvider` class implementation.",
           "type": "string",
-          "default": "secret_reader"
+          "default": "source_provider"
         }
       },
       "required": ["type", "config"]
@@ -117,15 +117,15 @@
         },
         "class_override": {
           "title": "Class Override",
-          "description": "Optional override for the secret reader class name (default is 'SecretReader').",
+          "description": "Optional override for the destination system class name (default is 'DestinationSystem').",
           "type": "string",
-          "default": "SecretReader"
+          "default": "DestinationSystem"
         },
         "source_file_override": {
           "title": "Source File Override",
-          "description": "Optional override for the source file containing the `SecretReader` class implementation.",
+          "description": "Optional override for the source file containing the `DestinationSystem` class implementation.",
           "type": "string",
-          "default": "secret_reader"
+          "default": "destination_system"
         }
       },
       "required": ["type", "config"]
