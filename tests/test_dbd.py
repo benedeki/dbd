@@ -55,14 +55,16 @@ def test_load_classes_imports_configured_secret_reader(tmp_path, monkeypatch):
     config_path.write_text(
         json.dumps(
             {
-                "secret_reader": {"type": "blind"},
-                "record_keeper": {"type": "blind"},
+                "secret_reader": {"type": "blind", "config": {}},
+                "record_keeper": {"type": "blind", "config": {}},
                 "source_provider": {
                     "type": "file",
-                    "path": str(tmp_path),
-                    "file_masks": ["*.sql"],
+                    "config": {
+                        "path": str(tmp_path),
+                        "file_masks": ["*.sql"],
+                    },
                 },
-                "destination_system": {"type": "blind"},
+                "destination_system": {"type": "blind", "config": {}},
             }
         ),
         encoding="utf-8",
@@ -95,23 +97,28 @@ def test_load_classes_honors_module_and_class_overrides(tmp_path):
             {
                 "secret_reader": {
                     "type": "blind",
+                    "config": {},
                     "source_file_override": "secret_reader",
                     "class_override": "SecretReader",
                 },
                 "record_keeper": {
                     "type": "blind",
+                    "config": {},
                     "source_file_override": "record_keeper",
                     "class_override": "RecordKeeper",
                 },
                 "source_provider": {
                     "type": "file",
-                    "path": str(tmp_path),
-                    "file_masks": ["*.sql"],
+                    "config": {
+                        "path": str(tmp_path),
+                        "file_masks": ["*.sql"],
+                    },
                     "source_file_override": "source_provider",
                     "class_override": "SourceProvider",
                 },
                 "destination_system": {
                     "type": "blind",
+                    "config": {},
                     "source_file_override": "destination_system",
                     "class_override": "DestinationSystem",
                 },

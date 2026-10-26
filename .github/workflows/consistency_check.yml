@@ -75,4 +75,95 @@ jobs:
             esac
           done
 
-          npx --yes ajv-cli@5 compile --spec=draft2020 -s "documentation/schemas/**/*.schema.json"
+          #
+# Copyright 2026 David Benedeki, All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+name: Consistency Check
+
+on:
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  link-check-in-markdown-files:
+    name: Link Check in Markdown Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check markdown links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >
+            --verbose --no-progress
+            './**/*.md'
+          fail: true
+          failIfEmpty: false
+
+  check-license-header:
+    name: Check License Header
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: hawkeye
+      - run: hawkeye check
+
+  check-json-schemas:
+    name: Check JSON Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - name: Check schema filenames and syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -d '' schema_files < <(find documentation/schemas -type f -print0)
+          if [ "${#schema_files[@]}" -eq 0 ]; then
+            echo "No files found under documentation/schemas"
+            exit 1
+          fi
+
+          for schema_file in "${schema_files[@]}"; do
+            case "$schema_file" in
+              *.schema.json) ;;
+              *)
+                echo "Schema file must end with .schema.json: $schema_file"
+                exit 1
+                ;;
+            esac
+          done
+
+          mapfile -d '' reference_files < <(
+            find documentation/schemas -type f -name '*.schema.json' \
+              ! -path 'documentation/schemas/dbd.schema.json' -print0
+          )
+
+          npx --yes ajv-cli@5 compile --spec=draft2020 \
+            -s documentation/schemas/dbd.schema.json \
+            -r "${reference_files[@]}"
+
+          for schema_file in "${schema_files[@]}"; do
+            if [ "$schema_file" = "documentation/schemas/dbd.schema.json" ]; then
+              continue
+            fi
+            npx --yes ajv-cli@5 compile --spec=draft2020 -s "$schema_file"
+          done
