@@ -80,8 +80,9 @@ def test_load_classes_imports_configured_secret_reader(tmp_path, monkeypatch):
 
     record_keeper, source_provider, destination_system = _load_classes(config)
 
-    assert len(expanded_with) == 1
-    assert isinstance(expanded_with[0], SecretReader)
+    assert len(expanded_with) == 2
+    assert expanded_with[0] is None
+    assert isinstance(expanded_with[1], SecretReader)
     assert isinstance(record_keeper, AbstractRecordKeeper)
     assert isinstance(record_keeper, RecordKeeper)
     assert isinstance(source_provider, AbstractSourceProvider)

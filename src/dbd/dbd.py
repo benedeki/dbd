@@ -80,6 +80,10 @@ def _load_classes(config: ExpandableConfig) -> tuple[
         destination system.
     """
     # TODO: Better configuration reade once #29 is implemented (avoid sub-config creation)
+    # the secret reader configuration is needed expanded to be able to read secrets for the other components
+    config.expand(branch = "secret_reader")
+    # the above also means, that secret reader configuration cannot contain `SECRET` expander
+
     sub_config = config.get_as_config("secret_reader", {})
     secret_reader_type = sub_config.get_as_str("type")
     secret_reader_source_file = sub_config.get_as_str("source_file_override", "secret_reader")
