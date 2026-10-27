@@ -14,6 +14,7 @@
 
 import sys
 from enum import Enum
+from importlib import import_module
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
@@ -28,6 +29,12 @@ class Action(Enum):
 
 
 def _load_parameters() -> tuple[Action, str, dict[str, str]]:
+    """Parse command-line arguments.
+
+    :return: A tuple containing the requested action, configuration file path,
+        and command-line configuration overrides.
+    :raises ValueError: If the arguments are missing or invalid.
+    """
     if len(sys.argv) < 2:
         raise ValueError("No command-line arguments provided.")
     if sys.argv[1] in ('-h', '--help'):
@@ -65,10 +72,73 @@ def _load_parameters() -> tuple[Action, str, dict[str, str]]:
 def _load_classes(config: ExpandableConfig) -> tuple[
     AbstractRecordKeeper, AbstractSourceProvider, AbstractDestinationSystem
 ]:
-    raise NotImplementedError
+    """Create the configured deployment components.
+
+    :param config: Expanded configuration used to select and initialize the
+        component implementations.
+    :return: A tuple containing the record keeper, source provider, and
+        destination system.
+    """
+    # TODO: Better configuration reade once #29 is implemented (avoid sub-config creation)
+    # the secret reader configuration is needed expanded to be able to read secrets for the other components
+    config.expand(branch = "secret_reader")
+    # the above also means, that secret reader configuration cannot contain `SECRET` expander
+
+    sub_config = config.get_as_config("secret_reader", {})
+    secret_reader_type = sub_config.get_as_str("type")
+    secret_reader_source_file = sub_config.get_as_str("source_file_override", "secret_reader")
+    secret_reader_class_name = sub_config.get_as_str("class_override", "SecretReader")
+    secret_reader_module = import_module(
+        f"dbd.implementations.{secret_reader_type}.{secret_reader_source_file}"
+    )
+    secret_reader_class = getattr(secret_reader_module, secret_reader_class_name)
+    sub_config = sub_config.get_as_config("config")
+    config.expand(secret_reader_class(sub_config))
+
+    sub_config = config.get_as_config("record_keeper", {})
+    record_keeper_type = sub_config.get_as_str("type")
+    record_keeper_source_file = sub_config.get_as_str("source_file_override", "record_keeper")
+    record_keeper_class_name = sub_config.get_as_str("class_override", "RecordKeeper")
+    record_keeper_module = import_module(
+        f"dbd.implementations.{record_keeper_type}.{record_keeper_source_file}"
+    )
+    record_keeper_class = getattr(record_keeper_module, record_keeper_class_name)
+    sub_config = sub_config.get_as_config("config")
+    record_keeper = record_keeper_class(sub_config)
+
+    sub_config = config.get_as_config("source_provider", {})
+    source_provider_type = sub_config.get_as_str("type")
+    source_provider_source_file = sub_config.get_as_str("source_file_override", "source_provider")
+    source_provider_class_name = sub_config.get_as_str("class_override", "SourceProvider")
+    source_provider_module = import_module(
+        f"dbd.implementations.{source_provider_type}.{source_provider_source_file}"
+    )
+    source_provider_class = getattr(source_provider_module, source_provider_class_name)
+    sub_config = sub_config.get_as_config("config")
+    source_provider = source_provider_class(sub_config)
+
+    sub_config = config.get_as_config("destination_system", {})
+    destination_system_type = sub_config.get_as_str("type")
+    destination_system_source_file = sub_config.get_as_str("source_file_override", "destination_system")
+    destination_system_class_name = sub_config.get_as_str("class_override", "DestinationSystem")
+    destination_system_module = import_module(
+        f"dbd.implementations.{destination_system_type}.{destination_system_source_file}"
+    )
+    destination_system_class = getattr(destination_system_module, destination_system_class_name)
+    sub_config = sub_config.get_as_config("config")
+    destination_system = destination_system_class(sub_config)
+
+    return record_keeper, source_provider, destination_system
 
 
-def main():
+def main() -> None:
+    """Load configuration and execute the requested deployment action.
+
+    :return: None.
+    :raises ValueError: If the command-line arguments are invalid.
+    :raises NotImplementedError: If the requested action or component loading
+        is not implemented.
+    """
     action, config_file, clis = _load_parameters()
     config = ExpandableConfig(config_file, clis)
     record_keeper, source_provider, destination_system = _load_classes(config)

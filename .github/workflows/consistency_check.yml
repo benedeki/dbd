@@ -75,4 +75,12 @@ jobs:
             esac
           done
 
-          npx --yes ajv-cli@5 compile --spec=draft2020 -s "documentation/schemas/**/*.schema.json"
+          for schema_file in "${schema_files[@]}"; do
+            refs=()
+            for other in "${schema_files[@]}"; do
+              if [ "$other" != "$schema_file" ]; then
+                refs+=(-r "$other")
+              fi
+            done
+            npx --yes ajv-cli@5 compile --spec=draft2020 -s "$schema_file" "${refs[@]}"
+          done

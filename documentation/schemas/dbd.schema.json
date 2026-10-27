@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/benedeki/dbd/documentation/schemas/dbd.schema.json",
+  "title": "dbd root Config",
+  "description": "Root configuration for the whole dbd application.",
+  "type": "object",
+  "properties": {
+    "driver": {
+      "title": "Driver",
+      "description": "Configuration for driver of the dbd application.",
+      "type": "object",
+      "$ref": "./driver.schema.json"
+    },
+    "secret_reader": {
+      "title": "Secret Reader",
+      "description": "Setup of the secret reader.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "description": "The type of secret reader to use.",
+          "type": "string"
+        },
+        "config": {
+          "title": "Config",
+          "description": "Configuration for the secret reader used.",
+          "type": "object"
+        },
+        "class_override": {
+          "title": "Class Override",
+          "description": "Optional override for the secret reader class name (default is 'SecretReader').",
+          "type": "string",
+          "default": "SecretReader"
+        },
+        "source_file_override": {
+          "title": "Source File Override",
+          "description": "Optional override for the source file containing the `SecretReader` class implementation.",
+          "type": "string",
+          "default": "secret_reader"
+        }
+      },
+      "required": ["type", "config"]
+    },
+    "record_keeper": {
+      "title": "Record Keeper",
+      "description": "Setup of the record keeper.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "description": "The type of record keeper to use.",
+          "type": "string"
+        },
+        "config": {
+          "title": "Config",
+          "description": "Configuration for the record keeper used.",
+          "type": "object"
+        },
+        "class_override": {
+          "title": "Class Override",
+          "description": "Optional override for the record keeper class name (default is 'RecordKeeper').",
+          "type": "string",
+          "default": "RecordKeeper"
+        },
+        "source_file_override": {
+          "title": "Source File Override",
+          "description": "Optional override for the source file containing the `RecordKeeper` class implementation.",
+          "type": "string",
+          "default": "record_keeper"
+        }
+      },
+      "required": ["type", "config"]
+    },
+    "source_provider": {
+      "title": "Source Provider",
+      "description": "Setup of the source provider.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "description": "The type of source provider to use.",
+          "type": "string"
+        },
+        "config": {
+          "title": "Config",
+          "description": "Configuration for the source provider used.",
+          "type": "object"
+        },
+        "class_override": {
+          "title": "Class Override",
+          "description": "Optional override for the source provider class name (default is 'SourceProvider').",
+          "type": "string",
+          "default": "SourceProvider"
+        },
+        "source_file_override": {
+          "title": "Source File Override",
+          "description": "Optional override for the source file containing the `SourceProvider` class implementation.",
+          "type": "string",
+          "default": "source_provider"
+        }
+      },
+      "required": ["type", "config"]
+    },
+    "destination_system": {
+      "title": "Destination System",
+      "description": "Setup of the destination system.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "title": "Type",
+          "description": "The type of destination system to use.",
+          "type": "string"
+        },
+        "config": {
+          "title": "Config",
+          "description": "Configuration for the destination system used.",
+          "type": "object"
+        },
+        "class_override": {
+          "title": "Class Override",
+          "description": "Optional override for the destination system class name (default is 'DestinationSystem').",
+          "type": "string",
+          "default": "DestinationSystem"
+        },
+        "source_file_override": {
+          "title": "Source File Override",
+          "description": "Optional override for the source file containing the `DestinationSystem` class implementation.",
+          "type": "string",
+          "default": "destination_system"
+        }
+      },
+      "required": ["type", "config"]
+    }
+  },
+    "required": ["driver", "secret_reader", "record_keeper", "source_provider", "destination_system"]
+}
