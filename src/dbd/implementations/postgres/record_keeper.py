@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 import psycopg
-from psycopg import errors
+from psycopg import errors, sql
 from psycopg.rows import class_row
 from psycopg.types.json import Jsonb
 
@@ -193,10 +193,12 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
         self._version_checked = True
 
     def _redeploy(self) -> None:
+        with self._connect() as conn:
+            installing_user = sql.Identifier(self._user).as_string(conn)
         driver_config: SimpleConfig =  SimpleConfig(
             {
                 "mappings": {
-                    "INSTALLING_USER": self._user,
+                    "INSTALLING_USER": installing_user,
                     "VERSION_NUMBER": str(CURRENT_VERSION)
                 }
             }

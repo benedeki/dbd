@@ -282,8 +282,12 @@ def test_redeploy_builds_driver_from_override_path(config: SimpleConfig):
     source_provider = MagicMock()
     destination_system = MagicMock()
     driver = MagicMock()
+    connection = MagicMock()
+    connection.__enter__.return_value = connection
 
     with (
+        patch.object(record_keeper, "_connect", return_value=connection),
+        patch.object(postgres_record_keeper.sql.Identifier, "as_string", return_value='"dbd-user"'),
         patch.object(postgres_record_keeper, "BlindRecordKeeper", return_value=blind_record_keeper),
         patch.object(
             postgres_record_keeper,
@@ -310,8 +314,12 @@ def test_redeploy_uses_bundled_database_scripts_by_default(config: SimpleConfig)
     record_keeper = RecordKeeper(config)
     source_provider = MagicMock()
     driver = MagicMock()
+    connection = MagicMock()
+    connection.__enter__.return_value = connection
 
     with (
+        patch.object(record_keeper, "_connect", return_value=connection),
+        patch.object(postgres_record_keeper.sql.Identifier, "as_string", return_value='"dbd-user"'),
         patch.object(postgres_record_keeper, "BlindRecordKeeper"),
         patch.object(postgres_record_keeper, "FileSourceProvider", return_value=source_provider) as source_type,
         patch.object(postgres_record_keeper, "PostgresDestinationSystem"),
