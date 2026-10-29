@@ -50,3 +50,5 @@ END;
 $$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.new_session(TEXT) OWNER TO dbd_owner;
+
+GRANT EXECUTE ON FUNCTION dbd.new_session(TEXT) TO dbd_user;

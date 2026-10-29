@@ -30,7 +30,7 @@ CREATE OR REPLACE FUNCTION dbd.version(
 -------------------------------------------------------------------------------
 DECLARE
 BEGIN
-    version_number := 1;
+    version_number := {{VERSION_NUMBER}};
 
     RETURN;
 END;

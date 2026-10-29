@@ -193,7 +193,14 @@ class RecordKeeper(AbstractRecordKeeper, _PostgresConnector):
         self._version_checked = True
 
     def _redeploy(self) -> None:
-        driver_config: SimpleConfig =  SimpleConfig({})
+        driver_config: SimpleConfig =  SimpleConfig(
+            {
+                "mappings": {
+                    "INSTALLING_USER": self._user,
+                    "VERSION_NUMBER": str(CURRENT_VERSION)
+                }
+            }
+        )
 
         record_keeper_config = SimpleConfig({})
         record_keeper = BlindRecordKeeper(record_keeper_config)

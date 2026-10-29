@@ -15,12 +15,14 @@
 import sys
 from enum import Enum
 from importlib import import_module
+from typing import Any
 
 from dbd.abstract.abstract_destination_system import AbstractDestinationSystem
 from dbd.abstract.abstract_record_keeper import AbstractRecordKeeper
 from dbd.abstract.abstract_source_provider import AbstractSourceProvider
 from dbd.core.driver import Driver
 from dbd.core.expandable_config import ExpandableConfig
+from dbd.core.simple_config import SimpleConfig
 
 
 class Action(Enum):
@@ -85,50 +87,48 @@ def _load_classes(config: ExpandableConfig) -> tuple[
     # the above also means, that secret reader configuration cannot contain `SECRET` expander
 
     sub_config = config.get_as_config("secret_reader", {})
-    secret_reader_type = sub_config.get_as_str("type")
-    secret_reader_source_file = sub_config.get_as_str("source_file_override", "secret_reader")
-    secret_reader_class_name = sub_config.get_as_str("class_override", "SecretReader")
-    secret_reader_module = import_module(
-        f"dbd.implementations.{secret_reader_type}.{secret_reader_source_file}"
-    )
-    secret_reader_class = getattr(secret_reader_module, secret_reader_class_name)
-    sub_config = sub_config.get_as_config("config")
-    config.expand(secret_reader_class(sub_config))
+    secret_reader = _load_one_class(sub_config, "secret_reader", "SecretReader")
+    config.expand(secret_reader)
 
     sub_config = config.get_as_config("record_keeper", {})
-    record_keeper_type = sub_config.get_as_str("type")
-    record_keeper_source_file = sub_config.get_as_str("source_file_override", "record_keeper")
-    record_keeper_class_name = sub_config.get_as_str("class_override", "RecordKeeper")
-    record_keeper_module = import_module(
-        f"dbd.implementations.{record_keeper_type}.{record_keeper_source_file}"
-    )
-    record_keeper_class = getattr(record_keeper_module, record_keeper_class_name)
-    sub_config = sub_config.get_as_config("config")
-    record_keeper = record_keeper_class(sub_config)
+    record_keeper = _load_one_class(sub_config, "record_keeper", "RecordKeeper")
 
     sub_config = config.get_as_config("source_provider", {})
-    source_provider_type = sub_config.get_as_str("type")
-    source_provider_source_file = sub_config.get_as_str("source_file_override", "source_provider")
-    source_provider_class_name = sub_config.get_as_str("class_override", "SourceProvider")
-    source_provider_module = import_module(
-        f"dbd.implementations.{source_provider_type}.{source_provider_source_file}"
-    )
-    source_provider_class = getattr(source_provider_module, source_provider_class_name)
-    sub_config = sub_config.get_as_config("config")
-    source_provider = source_provider_class(sub_config)
+    source_provider = _load_one_class(sub_config, "source_provider", "SourceProvider")
 
     sub_config = config.get_as_config("destination_system", {})
-    destination_system_type = sub_config.get_as_str("type")
-    destination_system_source_file = sub_config.get_as_str("source_file_override", "destination_system")
-    destination_system_class_name = sub_config.get_as_str("class_override", "DestinationSystem")
-    destination_system_module = import_module(
-        f"dbd.implementations.{destination_system_type}.{destination_system_source_file}"
-    )
-    destination_system_class = getattr(destination_system_module, destination_system_class_name)
-    sub_config = sub_config.get_as_config("config")
-    destination_system = destination_system_class(sub_config)
+    destination_system = _load_one_class(sub_config, "destination_system", "DestinationSystem")
 
     return record_keeper, source_provider, destination_system
+
+def _load_one_class(config: SimpleConfig, default_source_file: str, default_class_name: str) -> Any:
+    result_type = config.get_as_str("type")
+    result_source_file = config.get_as_str("source_file_override", default_source_file)
+    result_class_name = config.get_as_str("class_override", default_class_name)
+    result_module = import_module(
+        f"dbd.implementations.{result_type}.{result_source_file}"
+    )
+    result_class = getattr(result_module, result_class_name)
+    sub_config = config.get_as_config("config")
+    result = result_class(sub_config)
+    return result
+
+
+    """Create a single deployment component based on the provided configuration.
+
+    :param config: Expanded configuration used to select and initialize the
+        component implementation.
+    :param default_source_file: Default source file name for the component.
+    :param default_class_name: Default class name for the component.
+    :return: The initialized component instance.
+    """
+    component_type = config.get_as_str("type")
+    source_file_override = config.get_as_str("source_file_override", default_source_file)
+    class_override = config.get_as_str("class_override", default_class_name)
+    module = import_module(f"dbd.implementations.{component_type}.{source_file_override}")
+    component_class = getattr(module, class_override)
+    sub_config = config.get_as_config("config")
+    return component_class(sub_config)
 
 
 def main() -> None:
