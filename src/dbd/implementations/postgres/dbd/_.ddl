@@ -35,4 +35,29 @@ $do$
     END;
 $do$;
 
+
+DO
+$do$
+    BEGIN
+        IF EXISTS (
+            SELECT FROM pg_catalog.pg_roles
+            WHERE  rolname = 'dbd_user')
+        THEN
+            RAISE NOTICE 'Role "dbd_user" already exists. Skipping.';
+        ELSE
+            CREATE ROLE dbd_user
+                NOLOGIN
+                NOSUPERUSER
+                INHERIT
+                NOCREATEDB
+                NOCREATEROLE
+                NOREPLICATION;
+        END IF;
+    END;
+$do$;
+
 ALTER SCHEMA dbd OWNER TO dbd_owner;
+
+GRANT USAGE ON SCHEMA dbd TO dbd_user;
+
+GRANT dbd_user TO {{INSTALLING_USER}};

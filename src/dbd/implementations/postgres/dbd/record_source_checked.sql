@@ -59,3 +59,5 @@ END;
 $$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.record_source_checked(UUID, TEXT) OWNER TO dbd_owner;
+
+GRANT EXECUTE ON FUNCTION dbd.record_source_checked(UUID, TEXT) TO dbd_user;

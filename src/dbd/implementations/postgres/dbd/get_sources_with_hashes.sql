@@ -43,3 +43,4 @@ $$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.get_sources_with_hashes(TEXT) OWNER TO dbd_owner;
 
+GRANT EXECUTE ON FUNCTION dbd.get_sources_with_hashes(TEXT) TO dbd_user;

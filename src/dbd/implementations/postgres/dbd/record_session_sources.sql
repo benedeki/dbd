@@ -92,3 +92,5 @@ END;
 $$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.record_session_sources(UUID, TEXT[], TEXT[], TEXT[]) OWNER TO dbd_owner;
+
+GRANT EXECUTE ON FUNCTION dbd.record_session_sources(UUID, TEXT[], TEXT[], TEXT[]) TO dbd_user;

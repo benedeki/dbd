@@ -89,3 +89,5 @@ END;
 $$ LANGUAGE plpgsql VOLATILE SECURITY DEFINER;
 
 ALTER FUNCTION dbd.record_source_deployed(UUID, TEXT, TEXT) OWNER TO dbd_owner;
+
+GRANT EXECUTE ON FUNCTION dbd.record_source_deployed(UUID, TEXT, TEXT) TO dbd_user;
