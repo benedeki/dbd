@@ -18,26 +18,55 @@ from dbd.core.configurable import Configurable
 
 
 class AbstractRecordKeeper(Configurable, ABC):
+    """Interface for tracking deployment sessions and source state."""
+
     @abstractmethod
     def start_session(self) -> None:
-        """Start a session with the record keeper."""
+        """Start a deployment session.
+
+        :return: None.
+        """
 
     @abstractmethod
     def end_session(self, warnings: dict[str, str]) -> None:
-        """End the session with the record keeper."""
+        """End a deployment session.
+
+        :param warnings: Mapping of source names to non-fatal warning messages.
+        :return: None.
+        """
 
     def fail_session(self, source_name: str, source_hash: str, error_message: str) -> None:
-        """Fail the session with the record keeper."""
+        """Record a failed deployment and terminate the session.
+
+        :param source_name: Name of the source that failed.
+        :param source_hash: Hash of the failed source.
+        :param error_message: Description of the deployment failure.
+        :return: None.
+        :raises RuntimeError: When the default implementation is used.
+        """
         raise RuntimeError(error_message)
 
     @abstractmethod
     def get_source_hash(self, source_name: str) -> str | None:
-        """Get the hash of a given source."""
+        """Get the previously recorded hash of a source.
+
+        :param source_name: Name of the source to look up.
+        :return: The recorded hash, or ``None`` when the source is unknown.
+        """
 
     @abstractmethod
     def record_deploy(self, source_name: str, source_hash: str) -> None:
-        """Record the deployment event."""
+        """Record a successful or warning deployment.
+
+        :param source_name: Name of the deployed source.
+        :param source_hash: Hash of the deployed source.
+        :return: None.
+        """
 
     @abstractmethod
     def source_checked(self, source_name: str) -> None:
-        """Record that a source has been checked."""
+        """Record that an unchanged source was checked.
+
+        :param source_name: Name of the source that was checked.
+        :return: None.
+        """

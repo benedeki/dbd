@@ -26,6 +26,8 @@ from dbd.core.simple_config import SimpleConfig
 
 
 class Action(Enum):
+    """Command-line actions supported by dbd."""
+
     INSTALL = "install"
     HELP = "help"
 
@@ -34,7 +36,8 @@ def _load_parameters() -> tuple[Action, str, dict[str, str]]:
     """Parse command-line arguments.
 
     :return: A tuple containing the requested action, configuration file path,
-        and command-line configuration overrides.
+        and command-line configuration overrides. The path is empty and the
+        overrides are empty for the help action.
     :raises ValueError: If the arguments are missing or invalid.
     """
     if len(sys.argv) < 2:
@@ -74,12 +77,14 @@ def _load_parameters() -> tuple[Action, str, dict[str, str]]:
 def _load_classes(config: ExpandableConfig) -> tuple[
     AbstractRecordKeeper, AbstractSourceProvider, AbstractDestinationSystem
 ]:
-    """Create the configured deployment components.
+    """Create and initialize the configured deployment components.
 
     :param config: Expanded configuration used to select and initialize the
         component implementations.
-    :return: A tuple containing the record keeper, source provider, and
-        destination system.
+    :return: A tuple containing the record keeper, source provider, and destination system.
+    :raises KeyError: If a required component configuration value is missing.
+    :raises ImportError: If a configured implementation module cannot be imported.
+    :raises AttributeError: If a configured implementation class is not present.
     """
     # TODO: Better configuration reade once #29 is implemented (avoid sub-config creation)
     # the secret reader configuration is needed expanded to be able to read secrets for the other components
@@ -101,7 +106,21 @@ def _load_classes(config: ExpandableConfig) -> tuple[
 
     return record_keeper, source_provider, destination_system
 
+
 def _load_one_class(config: SimpleConfig, default_source_file: str, default_class_name: str) -> Any:
+    """Load and instantiate one dynamically configured component.
+
+    :param config: Configuration containing the implementation type, optional
+        module and class overrides, and nested constructor configuration.
+    :param default_source_file: Module name used when the configuration does
+        not specify ``source_file_override``.
+    :param default_class_name: Class name used when the configuration does not
+        specify ``class_override``.
+    :return: An instance of the configured implementation.
+    :raises KeyError: If a required configuration value is missing.
+    :raises ImportError: If the implementation module cannot be imported.
+    :raises AttributeError: If the implementation class is not present.
+    """
     result_type = config.get_as_str("type")
     result_source_file = config.get_as_str("source_file_override", default_source_file)
     result_class_name = config.get_as_str("class_override", default_class_name)
@@ -112,24 +131,6 @@ def _load_one_class(config: SimpleConfig, default_source_file: str, default_clas
     sub_config = config.get_as_config("config")
     result = result_class(sub_config)
     return result
-
-
-    """Create a single deployment component based on the provided configuration.
-
-    :param config: Expanded configuration used to select and initialize the
-        component implementation.
-    :param default_source_file: Default source file name for the component.
-    :param default_class_name: Default class name for the component.
-    :return: The initialized component instance.
-    """
-    component_type = config.get_as_str("type")
-    source_file_override = config.get_as_str("source_file_override", default_source_file)
-    class_override = config.get_as_str("class_override", default_class_name)
-    module = import_module(f"dbd.implementations.{component_type}.{source_file_override}")
-    component_class = getattr(module, class_override)
-    sub_config = config.get_as_config("config")
-    return component_class(sub_config)
-
 
 def main() -> None:
     """Load configuration and execute the requested deployment action.

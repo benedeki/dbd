@@ -25,13 +25,21 @@ from dbd.core.simple_config import SimpleConfig
 
 
 class Driver(Configurable):
-    """The main execution class."""
+    """Coordinate source discovery, change detection, and deployment."""
 
     def __init__(self,
                  config: SimpleConfig,
                  record_keeper: AbstractRecordKeeper,
                  source_provider: AbstractSourceProvider,
                  destination_system: AbstractDestinationSystem):
+        """Initialize a deployment driver.
+
+        :param config: Driver configuration, including source mappings.
+        :param record_keeper: Component used to track deployment state.
+        :param source_provider: Component used to discover and read sources.
+        :param destination_system: Component used to deploy source content.
+        :return: None.
+        """
         super().__init__(config)
         self._record_keeper = record_keeper
         self._source_provider = source_provider
@@ -39,7 +47,12 @@ class Driver(Configurable):
         self._mappings = self._extract_mappings()
 
     def install(self) -> dict[str, str]:
-        """Read and process the sources and apply them to the destination system."""
+        """Deploy changed sources and return non-fatal warnings.
+
+        :return: Mapping of source names to warning messages.
+        :raises Exception: Re-raises initialization or deployment failures
+            after notifying the record keeper.
+        """
         self._record_keeper.start_session()
         success = False
         try:
@@ -57,20 +70,32 @@ class Driver(Configurable):
 
     @staticmethod
     def _compute_hash(source: str) -> str:
-        """Compute a hash for the given source string, same as git does for blob objects."""
+        """Compute the Git-compatible SHA-1 hash of source content.
+
+        :param source: Source content to hash.
+        :return: The hexadecimal SHA-1 blob hash.
+        """
         data = source.encode("utf-8")
         header = f"blob {len(data)}\0".encode()
         return hashlib.sha1(header + data).hexdigest()
 
     def _extract_mappings(self) -> dict[str, str]:
-        """Expand the mapping keys to include the start and end markers."""
+        """Convert configured mapping names to source placeholders.
+
+        :return: Mapping whose keys are wrapped in ``{{`` and ``}}`` and whose
+            values are strings.
+        """
         mapping: dict[str, Any] = self.config.get_as_dict("mappings", {})
         start_marker = "{{"
         end_marker = "}}"
         return {f"{start_marker}{k}{end_marker}": str(v) for k, v in mapping.items()}
 
     def _map_source_variables(self, source: str) -> str:
-        """Map the placeholders in the source string."""
+        """Replace configured placeholders in source content.
+
+        :param source: Source content containing mapping placeholders.
+        :return: Source content with placeholders replaced.
+        """
         if not self._mappings:
             return source
         # Sort by key length descending so longer keys match before shorter ones
@@ -81,6 +106,11 @@ class Driver(Configurable):
         return pattern.sub(lambda m: self._mappings[m.group(0)], source)
 
     def _push_source(self) -> dict[str, str]:
+        """Deploy each source whose content hash has changed.
+
+        :return: Mapping of source names to non-fatal deployment warnings.
+        :raises RuntimeError: When a deployment result fails the session.
+        """
         warnings = {}
         for source_name in self._source_provider.get_sources_list():
             source_content = self._map_source_variables(self._source_provider.get_source(source_name))

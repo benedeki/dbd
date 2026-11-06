@@ -19,14 +19,27 @@ from dbd.core.operation_status import OperationStatus
 
 
 class AbstractDestinationSystem(Configurable, ABC):
+    """Interface for deploying source content to a destination system."""
+
     @abstractmethod
     def deploy(self, source: str) -> OperationStatus:
-        """Deploy the given source to the destination system."""
+        """Deploy source content.
+
+        :param source: Source content to deploy.
+        :return: The deployment outcome.
+        """
 
     def init(self) -> None:
-        """Initialize the destination system before deployment."""
+        """Initialize the destination system before deployment.
+
+        :return: None.
+        """
         pass
 
     def close(self, was_successful: bool) -> None:
-        """Close the destination system after deployment."""
+        """Close the destination system after deployment.
+
+        :param was_successful: Whether the deployment completed successfully.
+        :return: None.
+        """
         pass

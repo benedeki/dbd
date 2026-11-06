@@ -18,25 +18,41 @@ from dbd.core.configurable import Configurable
 
 
 class AbstractSourceProvider(Configurable, ABC):
+    """Interface for discovering and reading deployment source files."""
 
     _sources_list: list[str] | None = None
 
     @abstractmethod
     def _get_sources_list(self) -> list[str]:
-        """Return a list of source names."""
+        """Return the source names provided by the implementation.
+
+        :return: A list of source names.
+        """
 
     @abstractmethod
     def _get_source(self, source_name: str) -> str:
-        """Return the source for the given source name."""
+        """Read source content from the implementation.
+
+        :param source_name: Name of the source to read.
+        :return: The source content.
+        """
 
     def get_sources_list(self) -> list[str]:
-        """Return a list of source names."""
+        """Return and cache the available source names.
+
+        :return: A list of source names.
+        """
         result: list[str] = self._get_sources_list()
         self._sources_list = result
         return result
 
     def get_source(self, source_name: str) -> str:
-        """Return the source for the given source name."""
+        """Return the content of a known source.
+
+        :param source_name: Name of the source to read.
+        :return: The source content.
+        :raises ValueError: If the source is not in the available source list.
+        """
         if self._sources_list is None:
             _sources = self.get_sources_list()
         else:

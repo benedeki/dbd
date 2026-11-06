@@ -26,14 +26,20 @@ if TYPE_CHECKING:
     from dbd.abstract.abstract_secret_reader import AbstractSecretReader
 
 class ExpandableConfig(SimpleConfig):
+    """Configuration loaded from JSON with placeholder expansion support."""
+
     def __init__(self,
                  config_file: str,
                  cli_parameters: dict[str, str]):
-        """
-        Loads a JSON configuration file and prepares it for expansion of placeholders for expansions
-        :param config_file:    config_file is the path to the JSON configuration file to be loaded and expanded.
-        :param cli_parameters: cli_parameters are provided to be used later for expansion of CLI references in the
-                               config while remaining stable
+        """Load a JSON configuration file.
+
+        :param config_file: Path to the JSON configuration file.
+        :param cli_parameters: Command-line values available to the ``CLI``
+            placeholder.
+        :return: None.
+        :raises FileNotFoundError: If the configuration file does not exist.
+        :raises json.JSONDecodeError: If the file is not valid JSON.
+        :raises ValueError: If the JSON root is not an object.
         """
         config_file_path = Path(config_file)
         self._root = config_file_path.parent
@@ -43,11 +49,25 @@ class ExpandableConfig(SimpleConfig):
             raise ValueError(f"Configuration file must contain a JSON object: {config_file_path}")
         super().__init__(loaded_data)
 
-    def expand(self, secret_reader: AbstractSecretReader | None = None, branch: str  = ""):
+    def expand(self, secret_reader: AbstractSecretReader | None = None, branch: str = ""):
+        """Expand placeholders in the whole configuration or one branch.
+
+        :param secret_reader: Reader used to resolve ``SECRET`` placeholders.
+        :param branch: Root configuration key to expand; an empty string
+            expands the complete configuration.
+        :return: None.
+        :raises ValueError: If a placeholder cannot be resolved.
+        """
         data: dict[str, Any] = self.get_as_dict(branch) if branch else self._data
         self._expand_dict(data, secret_reader)
 
     def _expand_dict(self, data: dict, secret_reader: AbstractSecretReader | None) -> None:
+        """Expand all values in a dictionary in place.
+
+        :param data: Dictionary whose values should be expanded.
+        :param secret_reader: Reader used to resolve ``SECRET`` placeholders.
+        :return: None.
+        """
         keys:list = list(data.keys())
         for key in keys:
             value = data[key]
@@ -63,6 +83,14 @@ class ExpandableConfig(SimpleConfig):
         value: Any,
         secret_reader: AbstractSecretReader | None,
     ) -> Any:
+        """Expand a value recursively.
+
+        :param value: Value that may contain a placeholder, dictionary, or list.
+        :param secret_reader: Reader used to resolve ``SECRET`` placeholders.
+        :return: The expanded value.
+        :raises ValueError: If a required reference value is unavailable or
+            has an unknown type.
+        """
         if isinstance(value, dict):
             self._expand_dict(value, secret_reader)
             return value
@@ -101,6 +129,14 @@ class ExpandableConfig(SimpleConfig):
         return value
 
     def _load_file(self, file_path: Path) -> Any:
+        """Load JSON data from a path relative to the configuration file.
+
+        :param file_path: Absolute path or path relative to the configuration
+            file's directory.
+        :return: The decoded JSON value.
+        :raises FileNotFoundError: If the referenced file does not exist.
+        :raises json.JSONDecodeError: If the referenced file is not valid JSON.
+        """
         if not file_path.is_absolute():
             file_path = self._root / file_path
         with file_path.open(encoding="utf-8") as file:
