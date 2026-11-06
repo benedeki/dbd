@@ -19,8 +19,17 @@ class Configurable:
     """Base class for configurable objects."""
 
     def __init__(self, config: SimpleConfig):
+        """Initialize an object with its configuration.
+
+        :param config: Configuration available to the object.
+        :return: None.
+        """
         self._config = config
 
     @property
     def config(self) -> SimpleConfig:
+        """Return the configuration supplied at initialization.
+
+        :return: The object's configuration.
+        """
         return self._config

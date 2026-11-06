@@ -17,14 +17,20 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class OpSuccess:
+    """Deployment result indicating success."""
+
     pass
 
 @dataclass(frozen=True)
 class OpWarning:
+    """Deployment result indicating success with a warning."""
+
     message: str
 
 @dataclass(frozen=True)
 class OpFailure:
+    """Deployment result indicating deployment failure."""
+
     message: str
 
 OperationStatus = OpSuccess | OpWarning | OpFailure

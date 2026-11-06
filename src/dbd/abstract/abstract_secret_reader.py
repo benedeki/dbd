@@ -23,24 +23,43 @@ class AbstractSecretReader(Configurable, ABC):
 
     @abstractmethod
     def get_secret(self, secret_name: str) -> str | dict[str, Any] | list[Any] | None:
-        """Return a secret of the given name."""
+        """Return a secret by name.
+
+        :param secret_name: Name of the secret to retrieve.
+        :return: A string, dictionary, list, or ``None`` when no secret exists.
+        """
 
     def get_secret_str(self, secret_name: str) -> str:
-        """Return a secret of the given name as a string."""
+        """Return a named secret as a string.
+
+        :param secret_name: Name of the secret to retrieve.
+        :return: The secret value.
+        :raises ValueError: If the secret is missing or is not a string.
+        """
         result = self.get_secret(secret_name)
         if not isinstance(result, str):
             raise ValueError(f"Secret '{secret_name}' does not exist or is not a string.")
         return result
 
     def get_secret_dict(self, secret_name: str) -> dict[str, Any]:
-        """Return a secret of the given name as a dictionary."""
+        """Return a named secret as a dictionary.
+
+        :param secret_name: Name of the secret to retrieve.
+        :return: The secret dictionary.
+        :raises ValueError: If the secret is missing or is not a dictionary.
+        """
         result = self.get_secret(secret_name)
         if not isinstance(result, dict):
             raise ValueError(f"Secret '{secret_name}' does not exist or is not a dictionary.")
         return result
 
     def get_secret_list(self, secret_name: str) -> list:
-        """Return a list of secrets of the given names as strings."""
+        """Return a named secret as a list.
+
+        :param secret_name: Name of the secret to retrieve.
+        :return: The secret list.
+        :raises ValueError: If the secret is missing or is not a list.
+        """
         result = self.get_secret(secret_name)
         if not isinstance(result, list):
             raise ValueError(f"Secret '{secret_name}' does not exist or is not a list.")
